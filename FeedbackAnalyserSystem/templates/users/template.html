@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<ul>
+    {% for x in myusers reversed %}
+        <li>{{ x.firstname}} {{x.lastname}}</li>
+        
+    {% endfor %}
+</ul>
+
+<p>{% lorem 1 p %}</p>
+<p>{% now "Y-m-d H:i" %}</p>
+
+{% with greetings=1 %}
+    {% if greetings == 1 %}
+        <h1>hello</h1>
+    {% endif %}
+{% endwith %}
+
+</body>
+</html>
