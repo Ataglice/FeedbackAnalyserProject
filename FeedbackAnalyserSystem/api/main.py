@@ -3,11 +3,17 @@ from fastapi.responses import Response
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, Dict, Any
+from analyser.AnalyzerPipeline import SentimentAnalyzer
 
-app = FastAPI()     
+app = FastAPI() 
+
+sentiment_analyzer = SentimentAnalyzer(
+    ru_anchors_path='sentiment_anchors_ru.json', 
+    en_anchors_path='anchors.json'
+)
 
 @app.get("/health")
-def helth_check():
+def health_check():
     return Response(status_code=200)
 
 class FeedbackData(BaseModel):
@@ -21,4 +27,14 @@ class FeedbackData(BaseModel):
 
 @app.post("/analyse")
 def analyse_data(feedback: FeedbackData):
-    text_to_analyse = feedback.text
+
+    analyzed_result = sentiment_analyzer.smart_analyze(feedback.text)
+
+    return {
+        "source_id": feedback.source_id,
+        "external_id": feedback.external_id,
+        "status": "success",
+        "analysis": analyzed_result
+    }
+    
+    
