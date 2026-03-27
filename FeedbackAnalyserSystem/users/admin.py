@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User
+from .models import User, Feedback, SentimanetAnalyze
 
 
 
@@ -9,3 +9,5 @@ class MemberAdmin(admin.ModelAdmin):
   
   
 admin.site.register(User, MemberAdmin)
+admin.site.register(Feedback)
+admin.site.register(SentimanetAnalyze)

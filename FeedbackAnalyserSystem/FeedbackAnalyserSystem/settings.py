@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'users',
     'main.apps.MainConfig',
     'bootstrap5',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [

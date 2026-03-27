@@ -1,0 +1,75 @@
+{% extends 'main/base.html' %}
+{% load static %} 
+
+{% block title %}Дашборд - Аналитика{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Dashboard</h2>
+            <p class="text-muted mb-0" style="font-size: 0.9rem;">Привет {{ request.user.username }}, давайте взглянем на графики:</p>
+        </div>
+        
+        <button class="btn btn-dark rounded-3 px-3 py-2 text-light" style="font-size: 0.85rem; background-color: #1a1a1a;">
+            Showing data: <span class="fw-semibold ms-2">01 Mar, 2026 - 14 Mar, 2026</span>
+            <i class="bi bi-calendar-event ms-2"></i>
+        </button>
+    </div>
+
+    <div class="row mb-5 mt-4">
+        <div class="col-md-4">
+            <h6 class="fw-bold mb-1 text-dark fs-5">Всего Отзывов</h6>
+            <p class="text-dark fw-bold mb-0 fs-5">(Сегодня): {{ total_reviews }}</p>
+        </div>
+        <div class="col-md-4">
+            <h6 class="fw-bold mb-1 text-dark fs-5">Средний индекс:</h6>
+            <p class="fw-bold mb-0 fs-5 {% if avg_index > 0 %}text-success{% elif avg_index < 0 %}text-danger{% else %}text-dark{% endif %}">
+                {{ avg_index }}
+            </p>
+        </div>
+        <div class="col-md-4">
+            <h6 class="fw-bold mb-1 text-dark fs-5">Критические :</h6>
+            <p class="text-danger fw-bold mb-0 fs-5">{{ critical_count }}</p>
+        </div>
+    </div>
+
+    <div class="row gx-4">
+        <div class="col-md-7 mb-4">
+            <div class="card bg-dark text-white border-0 shadow-sm rounded-4 h-100 p-3" style="background-color: #1a1a1a !important;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0 fw-bold">Тональность отзывов</h5>
+                    <button class="btn btn-sm btn-outline-secondary rounded-pill" style="font-size: 0.75rem;">View more</button>
+                </div>
+                <p class="text-secondary mb-4" style="font-size: 0.8rem;">From 1-14 Mar, 2026</p>
+                
+                <div style="height: 250px;">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-5 mb-4">
+            <div class="card bg-dark text-white border-0 shadow-sm rounded-4 h-100 p-3" style="background-color: #1a1a1a !important;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0 fw-bold">Распределение</h5>
+                    <button class="btn btn-sm btn-outline-secondary rounded-pill" style="font-size: 0.75rem;">View more</button>
+                </div>
+                <p class="text-secondary mb-4" style="font-size: 0.8rem;">From 1-14 Mar, 2026</p>
+                
+                <div style="height: 250px; display: flex; justify-content: center;">
+                    <canvas id="donutChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ trend_data|json_script:"trendData" }}
+{{ distribution_data|json_script:"distributionData" }}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'main/js/dashboard.js' %}"></script>
+
+{% endblock content %}

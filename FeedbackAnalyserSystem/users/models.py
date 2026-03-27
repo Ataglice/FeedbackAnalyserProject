@@ -20,3 +20,15 @@ class Feedback(models.Model):
 
     def __str__(self):
         return f"{self.source_id} - {self.external_id}"
+    
+class SentimanetAnalyze(models.Model):
+    feedback = models.ForeignKey(Feedback, on_delete=models.CASCADE, related_name='analyses')
+    type = models.CharField(max_length=50)
+    positive_val = models.FloatField()
+    negative_val = models.FloatField()
+    neutral_val = models.FloatField()
+    value = models.FloatField()
+    meta_data = models.JSONField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Analysis ({self.type}) for Feedback ID: {self.feedback_id}"

@@ -1,0 +1,1 @@
+from analyser.AnalyzerPipeline import SentimentAnalyzer

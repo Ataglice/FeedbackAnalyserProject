@@ -1,0 +1,40 @@
+body { background-color: #f4f5f7; overflow-x: hidden; }
+        
+        /* Стили кнопок бокового меню */
+        .sidebar-menu .nav-link {
+            color: #fff;
+            background-color: #1a1a1a;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+        }
+        .sidebar-menu .nav-link:hover, .sidebar-menu .nav-link.active {
+            background-color: #333;
+            transform: translateX(3px);
+        }
+        .sidebar-menu .nav-link i { color: #9b72cb; } /* Фиолетовые иконки */
+
+        /* Стили раздела Account Details */
+        .account-menu .nav-link {
+            color: #4a4a4a;
+            font-weight: 500;
+            padding-left: 0;
+        }
+        .account-menu .nav-link:hover { color: #9b72cb; }
+        .account-menu .nav-link i { color: #a0a0a0; font-size: 1.1rem; }
+
+        /* Градиент для кнопки PRO */
+        .btn-pro {
+            background: linear-gradient(90deg, #9b72cb 0%, #5b4282 100%);
+            color: white;
+            border: none;
+        }
+        .btn-pro:hover { color: #f0f0f0; opacity: 0.9; }
+        
+        /* Плашка пользователя */
+        .user-badge {
+            background-color: #1a1a1a;
+            color: white;
+            border-radius: 50px;
+            padding: 4px 12px 4px 4px;
+        }
