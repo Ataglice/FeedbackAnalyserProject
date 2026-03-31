@@ -115,5 +115,7 @@ class DataRecordCreateView(generics.CreateAPIView):
                 positive_val=pos_val,
                 negative_val=neg_val,
                 neutral_val=neu_val,
-                value=model_specific_value
+                value=model_specific_value,
+                meta_data=result
             )
+

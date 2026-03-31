@@ -38,3 +38,42 @@ body { background-color: #f4f5f7; overflow-x: hidden; }
             border-radius: 50px;
             padding: 4px 12px 4px 4px;
         }
+
+/* ========================================== */
+/* СТИЛИ ДЛЯ ЛЕНТЫ ОТЗЫВОВ (feed.html)        */
+/* ========================================== */
+.mock-bg { background-color: #f0f1f4; min-height: 100vh; padding: 20px; margin: -1.5rem; }
+.mock-card { border: 1px solid #4a4a4a; border-radius: 12px; background-color: #fafafa; padding: 20px; margin-bottom: 15px; }
+.mock-input { border: 1px solid #4a4a4a; background-color: #fff; font-size: 0.85rem; }
+.mock-input:focus { outline: none; border-color: #000; }
+.mock-pill { border-radius: 20px; padding: 4px 12px; }
+.mock-rect { border-radius: 4px; padding: 4px 8px; }
+.mock-btn { border: 1px solid #4a4a4a; background-color: #eaeaea; font-size: 0.8rem; padding: 4px 10px; border-radius: 4px; color: #333; text-decoration: none; }
+.mock-text-sm { font-size: 0.85rem; color: #333; }
+.mock-tags { color: #5cb85c; font-size: 0.85rem; margin-right: 10px; }
+.star-filled { color: #4a4a4a; font-size: 1.2rem; }
+.star-empty { color: #d0d0d0; font-size: 1.2rem; }
+
+/* Стили блока ответа */
+.mock-reply-container { border: 1px solid #4a4a4a; border-radius: 12px; overflow: hidden; margin-top: 15px; }
+.mock-reply-header { background-color: #c8c8c8; border-bottom: 1px solid #4a4a4a; padding: 4px 12px; display: flex; align-items: center; justify-content: space-between; }
+.mock-reply-body { background-color: #fff; padding: 10px 12px; min-height: 50px; }
+
+
+/* Стили для Admin Panel */
+.admin-sidebar { min-width: 280px; padding-top: 20px; }
+.admin-nav-item { display: flex; align-items: center; padding: 12px 15px; color: #333; text-decoration: none; border-radius: 8px; margin-bottom: 5px; transition: 0.2s; }
+.admin-nav-item i { font-size: 1.4rem; margin-right: 15px; }
+.admin-nav-item.active { color: #d63384; background-color: rgba(214, 51, 132, 0.05); }
+.admin-nav-item:hover:not(.active) { background-color: #eee; }
+
+.admin-table-container { border: 1px solid #4a4a4a; background: #fff; border-radius: 4px; padding: 30px; }
+.admin-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.85rem; }
+.admin-table th { background-color: #e9ecef; border: 1px solid #dee2e6; padding: 10px; text-align: left; color: #444; font-weight: 500; }
+.admin-table td { border: 1px solid #dee2e6; padding: 12px 10px; color: #333; }
+
+.filter-btn { border: 1px solid #4a4a4a; border-radius: 20px; padding: 4px 12px; background: white; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 5px; }
+.btn-export { border: 1px solid #4a4a4a; background: #eee; padding: 5px 20px; border-radius: 4px; }
+.btn-add-user { background: #6c757d; color: white; border: none; padding: 5px 15px; border-radius: 4px; }
+.pagination-circle { width: 30px; height: 30px; border: 1px solid #4a4a4a; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none; color: #333; }
+.pagination-circle.active { background: #6c757d; color: white; border-color: #6c757d; }
