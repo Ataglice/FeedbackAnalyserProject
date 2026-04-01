@@ -8,28 +8,30 @@ import os
 class SentimentAnalyzer:
 
     def __init__(self, ru_anchors_path = 'sentiment_anchors_ru.json', en_anchors_path = 'anchors.json'):
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-
-        ru_path = os.path.join(base_dir, ru_anchors_path)
-        en_path = os.path.join(base_dir, en_anchors_path)
-
-        #и нициализация моделей и эмбедингов
+        
+        #?                   инициализация моделей и эмбедингов
         self.embedder_en = SentenceTransformer('all-MiniLM-L6-v2')
         self.embedder_ru = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
 
-        # инициализация Vader
+        #!                   инициализация Vader
         self.analyzer = SentimentIntensityAnalyzer()
 
-        # инициализация пайплайнов классификации
+        #*                   инициализация пайплайнов классификации
         self.sentiment_pipe_ru = pipeline("sentiment-analysis", model="blanchefort/rubert-base-cased-sentiment")
         self.sentiment_pipe_en = pipeline("sentiment-analysis", model="distilbert/distilbert-base-uncased-finetuned-sst-2-english")
 
-        # Загрузка и кодирование якорей
+
+        #?        пути к якорям
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        ru_path = os.path.join(base_dir, ru_anchors_path)
+        en_path = os.path.join(base_dir, en_anchors_path)
+
+        #?      Загрузка и кодирование якорей для эмбэдинга
         self.ru_sentiment_anchors = self._load_and_encode_anchors(ru_path, self.embedder_ru)
         self.en_sentiment_anchors = self._load_and_encode_anchors(en_path, self.embedder_en)
 
 
-    
+    #?    закодированные якоря
     def _load_and_encode_anchors(self, file_path, embedder_model):
         encoded_anchors = {}
         try:
@@ -50,7 +52,7 @@ class SentimentAnalyzer:
 
 
     def _get_embedding_sentiment(self, active_model, active_anchor, text):
-        """Метод 1: Оценка тональности через косинусное сходство векторов"""
+        #? Метод 1: Оценка тональности через косинусное сходство векторов"""
         input_vec = active_model.encode(text)
         
         max_magnitude = -1.0
@@ -79,13 +81,12 @@ class SentimentAnalyzer:
         return final_best_score, other_scores
 
     def _get_vader_sentiment(self, text):
-        """Метод 2: Лексическая оценка тональности для английского"""
+        #! Метод 2: Лексическая оценка тональности для английского
         vs = self.analyzer.polarity_scores(text) 
-        
         return vs
 
     def _get_transformer_sentiment(self, text, is_ru):
-        """Метод 3: Универсальный метод для получения сентимента от нейросети."""
+        #* Метод 3: метод для получения сентимента от нейросети.
 
         pipe = self.sentiment_pipe_ru if is_ru else self.sentiment_pipe_en
         result = pipe(text[:1500])[0]
@@ -120,15 +121,15 @@ class SentimentAnalyzer:
             
         is_ru = self._is_russian(text)
 
-        # 1. (Transformer)
+        #* 1. (Transformer)
         trans_score = self._get_transformer_sentiment(text, is_ru)
         
-        # 2. (Embeddings)
+        #? 2. (Embeddings)
         active_model = self.embedder_ru if is_ru else self.embedder_en
         active_anchors = self.ru_sentiment_anchors if is_ru else self.en_sentiment_anchors
         embed_fin_score, embed_scores = self._get_embedding_sentiment(active_model, active_anchors, text)
 
-        NEU_THRESH = 0.20
+        NEU_THRESH = 0.15
         trans_is_pos = trans_score > NEU_THRESH
         trans_is_neg = trans_score < -NEU_THRESH
         trans_is_neu = abs(trans_score) <= NEU_THRESH
@@ -141,7 +142,7 @@ class SentimentAnalyzer:
         status = "UNKNOWN"
 
         if not is_ru:
-            # 3. (VADER)
+            #~ 3. (VADER)
             vader_scores = self._get_vader_sentiment(text)
             vader_comp = vader_scores['compound']
             
@@ -149,7 +150,7 @@ class SentimentAnalyzer:
             vader_is_neg = vader_comp < -NEU_THRESH
             vader_is_neu = abs(vader_comp) <= NEU_THRESH
             
-            # --- АНГЛИЙСКАЯ ВЕТКА (Числовая матрица) ---
+            #^ --- АНГЛИЙСКАЯ ВЕТКА (Числовая матрица) ---
             if (trans_is_pos and embed_is_pos) or (trans_is_neg and embed_is_neg) or (trans_is_neu and embed_is_neu):
                 # Если направление совпадает, усредняем показатели трех моделей
                 final_val = (trans_score + embed_fin_score + vader_comp) / 3.0
@@ -202,7 +203,7 @@ class SentimentAnalyzer:
             
 
         else:
-            # --- РУССКАЯ ВЕТКА (Числовая матрица) ---
+            #^ --- РУССКАЯ ВЕТКА (Числовая матрица) ---
             if (trans_is_pos and embed_is_pos) or (trans_is_neg and embed_is_neg) or (trans_is_neu and embed_is_neu):
                 final_val = (trans_score + embed_fin_score) / 2.0
                 status = "CONFIRMED_MATCH"
@@ -234,22 +235,3 @@ class SentimentAnalyzer:
 
    
 
-            
-if __name__ == "__main__":
-    
-
-
-    '''
-    with open("someComments.json", 'r', encoding='utf-8') as f:
-        data = json.load(f)
-
-    for item in data:
-        en_input = json.dumps({"text": item["text_en"]})
-
-        ru_input = json.dumps({"text": item["text_ru"]})
-
-        result = smart_analyze(ru_input)
-        print(f"Текст: {item['text_ru']}")
-        print(f"Итог: {result}")
-        print("-" * 20)
-    '''

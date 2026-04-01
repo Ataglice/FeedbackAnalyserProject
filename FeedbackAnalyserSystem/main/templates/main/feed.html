@@ -47,7 +47,14 @@
             </div>
             
 {% for feedback in page_obj %}
-            <div class="mock-card mb-3" style="padding: 15px;"> <div class="d-flex justify-content-between align-items-start mb-2"> <div>
+            <div class="mock-card mb-3" style="padding: 15px;
+                {% if feedback.sentiment_value > 0.2 %}
+                    border-left: 4px solid #7bc043; /* Зеленый - Позитив */
+                {% elif feedback.sentiment_value < -0.2 %}
+                    border-left: 4px solid #d9534f; /* Красный - Негатив */
+                {% else %}
+                    border-left: 4px solid #6c757d; /* Серый - Нейтрально */
+                {% endif %}"> <div class="d-flex justify-content-between align-items-start mb-2"> <div>
                         <div class="mb-0"> <span class="mock-tags" style="font-weight: 500;">#{{ feedback.category|default:"отзыв" }}</span>
                         </div>
                         <div class="mock-text-sm text-muted">

@@ -41,7 +41,7 @@ def register_view(request):
         form = UserCreationForm(request.POST)
         if form.is_valid():
             login(request, form.save())
-            return redirect("users")
+            return redirect("dashboard")
     else:
         form = UserCreationForm()
     return render(request, 'users/register.html', {"form": form})
@@ -51,7 +51,7 @@ def login_view(request):
         form = AuthenticationForm(data=request.POST)
         if form.is_valid():
             login(request, form.get_user())
-            return redirect("users")
+            return redirect("dashboard")
     else:
         form = AuthenticationForm()
     return render(request, 'users/login.html', {"form": form})
@@ -59,7 +59,7 @@ def login_view(request):
 def logout_view(request):
     if request.method == 'POST':
         logout(request)
-        return redirect("users")
+        return redirect("login")
 
 nlp_analyzer = SentimentAnalyzer()
 
@@ -85,18 +85,21 @@ class DataRecordCreateView(generics.CreateAPIView):
             # По умолчанию записываем общий итог (для Embed, так как он не выдает единый индекс в словаре)
             model_specific_value = overall_value 
 
-            # ВЕТВЬ А: Если модель вернула словарь (Embed, VADER)
+            #? ВЕТВЬ А: Если модель вернула словарь (Embed, VADER)
             if isinstance(model_metrics, dict):
                 # Универсальное извлечение: ищет ключи Embed, если их нет — ищет ключи VADER
                 pos_val = model_metrics.get('POSITIVE', model_metrics.get('pos', 0.0))
                 neg_val = model_metrics.get('NEGATIVE', model_metrics.get('neg', 0.0))
                 neu_val = model_metrics.get('NEUTRAL', model_metrics.get('neu', 0.0))
+
+                if neg_val > 0:
+                    neg_val = -neg_val
                 
                 # Если это VADER, извлекаем его конкретный итоговый коэффициент
                 if model_name == "VADER":
                     model_specific_value = model_metrics.get('compound', overall_value)
 
-            # ВЕТВЬ Б: Если модель вернула число (RuBERT, DistilBERT)
+            #? ВЕТВЬ Б: Если модель вернула число (RuBERT, DistilBERT)
             elif isinstance(model_metrics, (float, int)):
                 model_specific_value = float(model_metrics)
                 
@@ -104,7 +107,7 @@ class DataRecordCreateView(generics.CreateAPIView):
                 if model_metrics > 0:
                     pos_val = float(model_metrics)
                 elif model_metrics < 0:
-                    neg_val = abs(float(model_metrics))
+                    neg_val = float(model_metrics)
                 else:
                     neu_val = 1.0
 
@@ -115,7 +118,15 @@ class DataRecordCreateView(generics.CreateAPIView):
                 positive_val=pos_val,
                 negative_val=neg_val,
                 neutral_val=neu_val,
-                value=model_specific_value,
-                meta_data=result
+                value=model_specific_value
             )
+
+        SentimanetAnalyze.objects.create(
+            feedback=feedback_instance,
+            type='FINAL',
+            value=overall_value,
+            positive_val=0.0,
+            negative_val=0.0,
+            neutral_val=0.0
+        )
 

@@ -1,37 +1,58 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head> 
-  <title>{% block title %}{% endblock %}</title>
-  {% load bootstrap5 %}
-  {% bootstrap_css %}
-  {% bootstrap_javascript %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Система авторизации{% endblock %}</title>
+    {% load bootstrap5 %}
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}
 </head>
-<body>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm mb-5">
+    <div class="container">
+        <span class="navbar-brand fw-bold">Супер система да да бизнес</span>
+        
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto align-items-center">
+                
+                {% if user.is_authenticated %}
+                    <li class="nav-item me-3">
+                        <span class="nav-link text-white-50">Вы вошли как: <strong class="text-white">{{ user.username }}</strong></span>
+                    </li>
+                    <li class="nav-item">
+                        <form action="{% url 'logout' %}" method="post" class="m-0 p-0">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-danger btn-sm" type="submit">Выйти</button>
+                        </form>
+                    </li>
+                {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'login' %}">Войти</a>
+                    </li>
+                    <li class="nav-item ms-lg-2 mt-2 mt-lg-0">
+                        <a class="btn btn-primary btn-sm" href="{% url 'register' %}">Регистрация</a>
+                    </li>
+                {% endif %}
+                
+            </ul>
+        </div>
+    </div>
+</nav>
 
 <div class="container">
-  <ul class="nav bg-info">
-    <li class="nav-item">
-      <a class="nav-link link-light" href="/">HOME</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link link-light" href="/users/">MEMBERS</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link link-light" href="/register/">REGISTER</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link link-light" href="/login/">LOGIN</a>
-    </li>
-    <li class="nav-item">
-      <form class="logout" action="{% url 'logout' %}" method="post">
-        {% csrf_token %}
-        <button class="btn btn-danger btn-logout" type="submit" title="User logout">Logout</button>
-      </form>
-    </li>
-  </ul>
-
-  {% block content %}
-  {% endblock %}
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
 </div>
+
 </body>
 </html>

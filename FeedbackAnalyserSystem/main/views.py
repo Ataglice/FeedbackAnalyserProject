@@ -93,18 +93,25 @@ def feedback_view(request):
     all_feedbacks = Feedback.objects.all().order_by('-created_at')
 
     paginator = Paginator(all_feedbacks, 10)
-
     page_number = request.GET.get('page')
-
     page_obj = paginator.get_page(page_number)
+
+    feedback_ids = [feedback.id for feedback in page_obj]
+
+    sentiments = SentimanetAnalyze.objects.filter(
+        feedback_id__in=feedback_ids, 
+        type='FINAL'
+    ).values('feedback_id', 'value')
+
+    sentiment_map = {item['feedback_id']: item['value'] for item in sentiments}
+
+    for feedback in page_obj:
+        feedback.sentiment_value = sentiment_map.get(feedback.id, 0.0)
 
     context = {
         'page_obj': page_obj 
     }
 
-    context_1 = {
-        'all_feedbacks': all_feedbacks
-    }
     return render(request, 'main/feed.html', context)
 
 @login_required(login_url='/users/login/')

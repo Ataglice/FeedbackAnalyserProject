@@ -1,12 +1,32 @@
 {% extends 'users/master.html' %}
+{% load bootstrap5 %}
 
-{% block title %}
-  Registration
-{% endblock %}
+{% block title %}Регистрация{% endblock %}
 
 {% block content %}
-  <h1>Register a new User</h1>
-  <form class="form-with-validation" action="" method="post">
-    {% csrf_token %} {{ form }} <button class="btn btn-primary" type="submit">Submit</button>
-  </form>
+<div class="card shadow-sm border-0 rounded-3 mt-4">
+    
+    <div class="card-header bg-white border-bottom-0 pt-4 pb-0 text-center">
+        <h3 class="fw-bold mb-0 text-dark">Регистрация</h3>
+        <p class="text-muted mt-2 mb-0">Создайте новую учетную запись</p>
+    </div>
+    
+    <div class="card-body p-4 p-md-5">
+        <form action="{% url 'register' %}" method="post" novalidate>
+            {% csrf_token %}
+            
+            {% bootstrap_form form %}
+            
+            <div class="d-grid gap-2 mt-4">
+                <button class="btn btn-primary btn-lg fw-medium" type="submit">Зарегистрироваться</button>
+            </div>
+        </form>
+        
+        <div class="text-center mt-4 pt-3 border-top">
+            <span class="text-muted">Уже есть аккаунт?</span>
+            <a href="{% url 'login' %}" class="text-decoration-none fw-medium ms-1">Войти</a>
+        </div>
+    </div>
+
+</div>
 {% endblock %}
