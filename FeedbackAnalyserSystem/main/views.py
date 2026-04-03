@@ -90,9 +90,29 @@ def dashboard_view(request):
 
 @login_required(login_url='/users/login/')
 def feedback_view(request):
-    all_feedbacks = Feedback.objects.all().order_by('-created_at')
+    all_feedbacks = Feedback.objects.all()
 
-    paginator = Paginator(all_feedbacks, 10)
+    selected_date = request.GET.get('date_filter')
+    selected_source = request.GET.get('source_filter')
+    selected_tag = request.GET.get('tag_filter')
+    selected_search = request.GET.get('search_query')
+
+    if selected_date:
+        all_feedbacks = all_feedbacks.filter(created_at__date=selected_date)
+        
+    if selected_source:
+        all_feedbacks = all_feedbacks.filter(source_id=selected_source)
+    
+    if selected_tag:
+        all_feedbacks = all_feedbacks.filter(category__icontains=selected_tag)
+
+    if selected_search:
+        all_feedbacks = all_feedbacks.filter(text__icontains=selected_search)
+
+
+    all_feedbacks = all_feedbacks.order_by('-created_at')
+
+    paginator = Paginator(all_feedbacks, 2)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -107,6 +127,8 @@ def feedback_view(request):
 
     for feedback in page_obj:
         feedback.sentiment_value = sentiment_map.get(feedback.id, 0.0)
+
+    
 
     context = {
         'page_obj': page_obj 

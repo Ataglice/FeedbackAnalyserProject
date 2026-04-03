@@ -10,16 +10,32 @@
         <div class="col-lg-8">
             
             <div class="mock-card mb-2" style="padding: 15px 20px;">
+                <!-- Поиск -->
+                 
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h4 class="mb-0 text-dark" style="font-weight: 400;">Лента Отзывов</h4>
                     <a href="#" class="mock-btn d-flex align-items-center">
                         <i class="bi bi-download me-2"></i> скачать отзывы
                     </a>
                 </div>
-                <div class="position-relative" style="max-width: 250px;">
-                    <i class="bi bi-search position-absolute" style="left: 10px; top: 50%; transform: translateY(-50%); color: #666; font-size: 0.85rem;"></i>
-                    <input type="text" class="mock-input mock-pill w-100" placeholder="Search" style="padding-left: 30px;">
-                </div>
+                <form method="GET" action="{% url 'feedback_feed' %}">
+                    <div class="position-relative" style="max-width: 250px;">
+                        <i class="bi bi-search position-absolute" style="left: 10px; top: 50%; transform: translateY(-50%); color: #666; font-size: 0.85rem;"></i>
+                        
+                        <input type="text" 
+                            name="search_query" 
+                            value="{{ request.GET.search_query }}"
+                            class="mock-input mock-pill w-100" 
+                            placeholder="Поиск по тексту..." 
+                            style="padding-left: 30px;">
+                    </div>
+
+                    <input type="hidden" name="date_filter" value="{{ request.GET.date_filter|default_if_none:'' }}">
+                    <input type="hidden" name="source_filter" value="{{ request.GET.source_filter|default_if_none:'' }}">
+                    <input type="hidden" name="tag_filter" value="{{ request.GET.tag_filter|default_if_none:'' }}">
+                </form>
+                
+
             </div>
 
             <div class="d-flex justify-content-between align-items-center mb-3 px-1 mock-text-sm">
@@ -29,7 +45,7 @@
                     {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
                     
                     {% if page_obj.has_previous %}
-                        <a href="?page={{ page_obj.previous_page_number }}" class="text-dark text-decoration-none">
+                        <a href="?page={{ page_obj.previous_page_number }}&search_query={{ request.GET.search_query|default_if_none:'' }}&date_filter={{ request.GET.date_filter|default_if_none:'' }}&source_filter={{ request.GET.source_filter|default_if_none:'' }}&tag_filter={{ request.GET.tag_filter|default_if_none:'' }}" class="text-dark text-decoration-none">
                             <i class="bi bi-arrow-left-short mx-1" style="border:1px solid #4a4a4a; padding: 0 4px; border-radius: 2px;"></i>
                         </a>
                     {% else %}
@@ -37,7 +53,7 @@
                     {% endif %}
 
                     {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}" class="text-dark text-decoration-none">
+                        <a href="?page={{ page_obj.next_page_number }}&search_query={{ request.GET.search_query|default_if_none:'' }}&date_filter={{ request.GET.date_filter|default_if_none:'' }}&source_filter={{ request.GET.source_filter|default_if_none:'' }}&tag_filter={{ request.GET.tag_filter|default_if_none:'' }}" class="text-dark text-decoration-none">
                             <i class="bi bi-arrow-right-short mx-1" style="border:1px solid #4a4a4a; padding: 0 4px; border-radius: 2px;"></i>
                         </a>
                     {% else %}
@@ -46,7 +62,7 @@
                 </span>
             </div>
             
-{% for feedback in page_obj %}
+            {% for feedback in page_obj %}
             <div class="mock-card mb-3" style="padding: 15px;
                 {% if feedback.sentiment_value > 0.2 %}
                     border-left: 4px solid #7bc043; /* Зеленый - Позитив */
@@ -54,114 +70,154 @@
                     border-left: 4px solid #d9534f; /* Красный - Негатив */
                 {% else %}
                     border-left: 4px solid #6c757d; /* Серый - Нейтрально */
-                {% endif %}"> <div class="d-flex justify-content-between align-items-start mb-2"> <div>
+                {% endif %}"> 
+                <div class="d-flex justify-content-between align-items-start mb-2"> 
+
+                    <div>
                         <div class="mb-0"> <span class="mock-tags" style="font-weight: 500;">#{{ feedback.category|default:"отзыв" }}</span>
                         </div>
                         <div class="mock-text-sm text-muted">
                             {{ feedback.source_id|default:"Неизвестный источник" }}
                         </div>
                     </div>
+
                     
                     <div class="d-flex align-items-center text-muted mock-text-sm">
                         <span class="me-2">{{ feedback.created_at|date:"d.m.y H:i" }}</span> <i class="bi bi-three-dots cursor-pointer" style="font-size: 1.1rem;"></i>
                     </div>
-                </div>
 
-                <div class="mock-input w-100 mb-2" style="border-radius: 4px; padding: 6px 10px; white-space: pre-wrap; word-break: break-word; background-color: #fff; border-color: #666;">{{ feedback.text }}</div> <div class="d-flex justify-content-between align-items-center mb-1"> <div class="d-flex align-items-center">
+
+                </div>
+                
+
+                <div class="mock-input w-100 mb-2" style="border-radius: 4px; padding: 6px 10px; white-space: pre-wrap; word-break: break-word; background-color: #fff; border-color: #666;">{{ feedback.text }}</div> 
+                
+
+                <div class="d-flex justify-content-between align-items-center mb-1"> 
+
+                    <div class="d-flex align-items-center">
                         <i class="bi bi-person-circle me-2" style="font-size: 0.85rem; color: #666;"></i>
                         <span class="mock-text-sm text-dark fw-bold">
                             {{ feedback.external_id|default:"Аноним" }}
                         </span>
                     </div>
 
+
                     <button class="mock-btn mt-0 mb-0" style="padding: 2px 8px; font-size: 0.75rem;" type="button" data-bs-toggle="collapse" data-bs-target="#replyBox-{{ feedback.id }}" aria-expanded="false" aria-controls="replyBox-{{ feedback.id }}">
                         <i class="bi bi-reply"></i> Ответить
                     </button>
+
                 </div>
 
+
+
                 <div class="collapse" id="replyBox-{{ feedback.id }}">
-                    <div class="mock-reply-container mt-2" style="border-color: #666; border-radius: 8px;"> <div class="mock-reply-header" style="background-color: #d8d8d8; border-bottom-color: #666; padding: 4px 10px;"> <div class="d-flex align-items-center">
+
+                    <div class="mock-reply-container mt-2" style="border-color: #666; border-radius: 8px;"> 
+                        <div class="mock-reply-header" style="background-color: #d8d8d8; border-bottom-color: #666; padding: 4px 10px;"> 
+
+                            <div class="d-flex align-items-center">
                                 <i class="bi bi-pencil-square me-2" style="font-size: 1rem; color: #444;"></i>
                                 <span class="mock-text-sm text-dark fw-bold" style="font-size: 0.8rem;">Ответ {{ feedback.external_id|default:"Аноним" }}</span>
                             </div>
+
                             <i class="bi bi-x-lg cursor-pointer" data-bs-toggle="collapse" data-bs-target="#replyBox-{{ feedback.id }}" style="color: #444; font-size: 1rem;"></i>
                         </div>
                         
-                        <div class="mock-reply-body mock-text-sm" style="background-color: #fff; padding: 8px 10px;"> <form method="POST" action="">
+                        <div class="mock-reply-body mock-text-sm" style="background-color: #fff; padding: 8px 10px;"> 
+
+                            <form method="POST" action="">   <!-- ответ пользователю  -->
                                 {% csrf_token %}
-                                <textarea class="mock-input w-100 mb-2" name="reply_text" rows="2" placeholder="Ваш ответ..." style="border-radius: 4px; padding: 6px; resize: vertical;" required></textarea> <div class="d-flex justify-content-end">
+                                <textarea class="mock-input w-100 mb-2" name="reply_text" rows="2" placeholder="Ваш ответ..." style="border-radius: 4px; padding: 6px; resize: vertical;" required></textarea> 
+                                <div class="d-flex justify-content-end">
                                     <button type="submit" class="mock-btn text-white border-0" style="background-color: #7bc043; padding: 2px 10px;">
                                         Отправить
                                     </button>
                                 </div>
                             </form>
                         </div>
-
                     </div>
                 </div>
-                
             </div>
             {% empty %}
             <div class="mock-card text-center py-5 text-muted">
                 Отзывов пока нет.
             </div>
             {% endfor %}
-
         </div>
 
-    <div class="col-lg-4">
-            <div class="mock-card sticky-top" style="top: 20px; padding: 20px;">
-                
-                <div class="d-flex align-items-center mb-3 pb-2" style="border-bottom: 1px solid #e0e0e0;">
-                    <i class="bi bi-funnel me-2 text-muted"></i>
-                    <h6 class="mb-0 fw-bold">Фильтры</h6>
-                </div>
+        <div class="col-lg-4">
+            <form method="GET" action="{% url 'feedback_feed' %}">
 
-                <div class="mb-3">
-                    <label class="d-block text-muted mb-1 fw-medium" style="font-size: 0.85rem;">Период</label>
-                    <input type="date" class="mock-input mock-rect w-100" value="2026-02-25" style="padding: 6px 10px;">
-                </div>
+                <input type="hidden" name="search_query" value="{{ request.GET.search_query|default_if_none:'' }}">
 
-                <div class="mb-3">
-                    <label class="d-block text-muted mb-1 fw-medium" style="font-size: 0.85rem;">Рейтинг</label>
-                    <div class="d-flex align-items-center bg-white border rounded" style="padding: 6px 10px; border-color: #4a4a4a !important;">
-                        <i class="bi bi-star-fill star-filled me-1"></i>
-                        <i class="bi bi-star-fill star-filled me-1"></i>
-                        <i class="bi bi-star-fill star-filled me-1"></i>
-                        <i class="bi bi-star-fill star-empty me-1"></i>
-                        <i class="bi bi-star-fill star-empty"></i>
-                        <span class="ms-auto text-muted" style="font-size: 0.8rem;">и выше</span>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="d-block text-muted mb-1 fw-medium" style="font-size: 0.85rem;">Площадка</label>
-                    <select class="mock-input mock-rect w-100" style="padding: 6px 10px;">
-                        <option>Все площадки</option>
-                        <option>2gis</option>
-                        <option>App Store</option>
-                    </select>
-                </div>
-
-                <div class="mb-4">
-                    <label class="d-block text-muted mb-1 fw-medium" style="font-size: 0.85rem;">Теги</label>
+                <div class="mock-card sticky-top" style="top: 20px; padding: 20px;">
                     
-                    <div class="position-relative mb-2">
-                        <i class="bi bi-search position-absolute" style="left: 10px; top: 50%; transform: translateY(-50%); color: #666; font-size: 0.85rem;"></i>
-                        <input type="text" class="mock-input mock-pill w-100" placeholder="Поиск тегов..." style="padding-left: 30px; padding-top: 4px; padding-bottom: 4px;">
+                    <div class="d-flex align-items-center mb-3 pb-2" style="border-bottom: 1px solid #e0e0e0;">
+                        <i class="bi bi-funnel me-2 text-muted"></i>
+                        <h6 class="mb-0 fw-bold">Фильтры</h6>
                     </div>
 
-                    <div class="d-flex flex-wrap gap-2 mt-2">
-                        <span class="badge bg-secondary rounded-pill fw-normal px-2 py-1">#ошибка <i class="bi bi-x ms-1 cursor-pointer"></i></span>
-                        <span class="badge bg-secondary rounded-pill fw-normal px-2 py-1">#доставка <i class="bi bi-x ms-1 cursor-pointer"></i></span>
+                    <div class="mb-3">
+                        <!--  фильтр даты -->
+                        <label class="d-block text-muted mb-1 fw-medium" style="font-size: 0.85rem;">Период</label>
+                        <input type="date" name="date_filter" class="mock-input mock-rect w-100" value="{{ request.GET.date_filter }}" style="padding: 6px 10px;">
                     </div>
+
+                    <div class="mb-3">
+                        <label class="d-block text-muted mb-1 fw-medium" style="font-size: 0.85rem;">Рейтинг</label>
+                        <div class="d-flex align-items-center bg-white border rounded" style="padding: 6px 10px; border-color: #4a4a4a !important;">
+                            <i class="bi bi-star-fill star-filled me-1"></i>
+                            <i class="bi bi-star-fill star-filled me-1"></i>
+                            <i class="bi bi-star-fill star-filled me-1"></i>
+                            <i class="bi bi-star-fill star-empty me-1"></i>
+                            <i class="bi bi-star-fill star-empty"></i>
+                            <span class="ms-auto text-muted" style="font-size: 0.8rem;">и выше</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <!-- фильтр площадки-->
+                        <label class="d-block text-muted mb-1 fw-medium" style="font-size: 0.85rem;">Площадка</label>
+                        <select name="source_filter" class="mock-input mock-rect w-100" style="padding: 6px 10px;">
+                            <option value="" {% if not request.GET.source_filter %}selected{% endif %}>Все площадки</option>
+                            <option value="озон" {% if request.GET.source_filter == "озон" %}selected{% endif %}>озон</option>
+                            <option value="wildberries" {% if request.GET.source_filter == "wildberries" %}selected{% endif %}>wildberries</option>
+                        </select>
+                    </div>
+                    <!-- теги -->
+                    <div class="mb-4">
+                        <label class="d-block text-muted mb-1 fw-medium" style="font-size: 0.85rem;">Теги</label>
+                        
+                        <div class="position-relative mb-2">
+                            <i class="bi bi-search position-absolute" style="left: 10px; top: 50%; transform: translateY(-50%); color: #666; font-size: 0.85rem;"></i>
+                            <input name="tag_filter" 
+                                   type="text"
+                                   value="{{ request.GET.tag_filter }}" 
+                                   class="mock-input mock-pill w-100" 
+                                   placeholder="Поиск тегов..." 
+                                   style="padding-left: 30px; padding-top: 4px; padding-bottom: 4px;">
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-2 mt-2">
+                            {% if request.GET.tag_filter %}
+                                <span class="badge bg-secondary rounded-pill fw-normal px-2 py-1 d-flex align-items-center">
+                                    #{{ request.GET.tag_filter }} 
+                                    
+                                    <a href="?search_query={{ request.GET.search_query|default_if_none:'' }}&date_filter={{ request.GET.date_filter|default_if_none:'' }}&source_filter={{ request.GET.source_filter|default_if_none:'' }}" class="text-white text-decoration-none">
+                                        <i class="bi bi-x ms-1 cursor-pointer" style="font-size: 1.1rem;"></i>
+                                    </a>
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <button type="submit" class="mock-btn w-100" style="background-color: #1a1a1a; color: white; border: none; padding: 8px; border-radius: 6px;">
+                        Применить
+                    </button>
+
                 </div>
-
-                <button class="mock-btn w-100" style="background-color: #1a1a1a; color: white; border: none; padding: 8px; border-radius: 6px;">
-                    Применить
-                </button>
-
-            </div>
+            </form>
         </div>
 
     </div>
