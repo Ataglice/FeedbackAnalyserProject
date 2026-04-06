@@ -58,11 +58,13 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for app_user in users %}
+                        {% for app_user in page_obj %}
                         <tr style="border-bottom: 1px solid #dee2e6;">
                             <td>{{ app_user.username }}</td>
                             <td>{{ app_user.email|default:"no email" }}</td>
-                            <td>-</td>
+                            
+                            <td>{{ app_user.profile.phone|default:"-" }}</td>
+                            
                             <td>
                                 {% if app_user.is_superuser %}
                                     <span class="badge bg-danger">Администратор</span>
@@ -92,26 +94,31 @@
                             <td colspan="8" class="text-center py-4 text-muted">Пользователи не найдены.</td>
                         </tr>
                         {% endfor %}
-                        
-                        {% for i in "123" %}
-                        <tr style="height: 40px;">
-                            {% for j in "12345678" %}<td></td>{% endfor %}
-                        </tr>
-                        {% endfor %}
                     </tbody>
                 </table>
+                
+                <div class="d-flex justify-content-between align-items-center mb-3 px-1 mock-text-sm mt-3">
+                    <span>показано {{ page_obj.start_index|default:0 }} - {{ page_obj.end_index|default:0 }} из {{ page_obj.paginator.count }}</span>
+                    
+                    <span>
+                        {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+                        
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" class="text-dark text-decoration-none">
+                                <i class="bi bi-arrow-left-short mx-1" style="border:1px solid #4a4a4a; padding: 0 4px; border-radius: 2px;"></i>
+                            </a>
+                        {% else %}
+                            <i class="bi bi-arrow-left-short mx-1 text-muted" style="border:1px solid #ccc; padding: 0 4px; border-radius: 2px;"></i>
+                        {% endif %}
 
-                <div class="d-flex justify-content-between align-items-center mt-4">
-                    <div class="mock-text-sm">
-                        rows per page <span class="pagination-circle d-inline-flex mx-1">5</span> of 120
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <a href="#"><i class="bi bi-arrow-left text-dark"></i></a>
-                        <a href="#" class="pagination-circle">1</a>
-                        <a href="#" class="pagination-circle active">2</a>
-                        <a href="#" class="pagination-circle">3</a>
-                        <a href="#"><i class="bi bi-arrow-right text-dark"></i></a>
-                    </div>
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="text-dark text-decoration-none">
+                                <i class="bi bi-arrow-right-short mx-1" style="border:1px solid #4a4a4a; padding: 0 4px; border-radius: 2px;"></i>
+                            </a>
+                        {% else %}
+                            <i class="bi bi-arrow-right-short mx-1 text-muted" style="border:1px solid #ccc; padding: 0 4px; border-radius: 2px;"></i>
+                        {% endif %}
+                    </span>
                 </div>
             </div>
         </div>

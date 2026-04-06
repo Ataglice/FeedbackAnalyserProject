@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import User, Feedback, SentimanetAnalyze
+from .models import Feedback, SentimanetAnalyze
+from .models import Company, EmployeeProfile, Feedback, SentimanetAnalyze, Platform
 
 
 
@@ -8,6 +9,8 @@ class MemberAdmin(admin.ModelAdmin):
   prepopulated_fields = {"slug": ("firstname", "lastname")}
   
   
-admin.site.register(User, MemberAdmin)
 admin.site.register(Feedback)
 admin.site.register(SentimanetAnalyze)
+admin.site.register(Company)
+admin.site.register(EmployeeProfile)
+admin.site.register(Platform)

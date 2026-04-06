@@ -4,4 +4,4 @@ from users.models import Feedback
 class DataRecordSerializer(serializers.ModelSerializer):
     class Meta:
         model = Feedback
-        fields = ['id', 'source_id', 'external_id', 'text', 'category', 'created_at', 'send_time', 'meta_data']
+        fields = ['id', 'company', 'source_id', 'external_id', 'text', 'category', 'rating', 'created_at', 'send_time', 'meta_data']
