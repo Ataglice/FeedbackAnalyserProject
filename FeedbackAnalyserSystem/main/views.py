@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from datetime import timedelta
@@ -7,7 +7,11 @@ from django.db.models.functions import TruncDate
 from django.core.paginator import Paginator
 from django.contrib.auth.models import User
 
-from users.models import Feedback, SentimanetAnalyze
+from users.models import Platform
+from users.models import Feedback, SentimanetAnalyze, EmployeeProfile
+from users.forms import EmployeeCreationForm
+from django.db import transaction
+
 
 @login_required(login_url='/users/login/')
 def dashboard_view(request):
@@ -111,7 +115,7 @@ def feedback_view(request):
         all_feedbacks = all_feedbacks.filter(created_at__date__lte=date_to)
         
     if selected_source:
-        all_feedbacks = all_feedbacks.filter(source_id=selected_source)
+        all_feedbacks = all_feedbacks.filter(platform__name=selected_source)
     if selected_tag:
         all_feedbacks = all_feedbacks.filter(category__icontains=selected_tag)
     if selected_search:
@@ -136,7 +140,8 @@ def feedback_view(request):
         feedback.sentiment_value = sentiment_map.get(feedback.id, 0.0)
 
     context = {
-        'page_obj': page_obj 
+        'page_obj': page_obj,
+        'platforms': Platform.objects.filter(is_active=True)
     }
 
     return render(request, 'main/feed.html', context)
@@ -144,10 +149,26 @@ def feedback_view(request):
 @login_required(login_url='/users/login/')
 def config(request):
     if not hasattr(request.user, 'profile'):
-        return render(request, 'main/config.html', {'page_obj': []})
+        return render(request, 'main/config.html', {'page_obj': [], 'form': EmployeeCreationForm()})
 
     user_company = request.user.profile.company
-    
+
+    if request.method == 'POST':
+        form = EmployeeCreationForm(request.POST)
+        if form.is_valid():
+            with transaction.atomic():
+                new_user = form.save()
+                
+                EmployeeProfile.objects.create(
+                    user=new_user,
+                    company=user_company, 
+                    phone=form.cleaned_data.get('phone', ''),
+                    slug=new_user.username 
+                )
+            return redirect('config') 
+    else:
+        form = EmployeeCreationForm()
+
     all_users = User.objects.filter(profile__company=user_company).order_by('-date_joined')
 
     paginator = Paginator(all_users, 5)
@@ -155,6 +176,7 @@ def config(request):
     page_obj = paginator.get_page(page_number)
     
     context = {
-        'page_obj': page_obj 
+        'page_obj': page_obj,
+        'form': form 
     }
     return render(request, 'main/config.html', context)

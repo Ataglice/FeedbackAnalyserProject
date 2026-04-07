@@ -40,7 +40,7 @@
                     
                     <div class="d-flex gap-2">
                         <button class="btn-export">export</button>
-                        <button class="btn-add-user">+ add user</button>
+                        <button class="btn-add-user" data-bs-toggle="modal" data-bs-target="#addUserModal">+ add user</button>
                     </div>
                 </div>
 
@@ -120,6 +120,72 @@
                         {% endif %}
                     </span>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px;">
+            
+            <div class="modal-header" style="border-bottom: 1px solid #e0e0e0;">
+                <h5 class="modal-title fw-bold" id="addUserModalLabel">Новый сотрудник</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body">
+                <form method="POST" action="">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger p-2 mb-3" style="font-size: 0.85rem;">
+                            {{ form.non_field_errors.0 }}
+                        </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted fw-medium mb-1" style="font-size: 0.85rem;">Логин <span class="text-danger">*</span></label>
+                        {{ form.username }}
+                        {% if form.username.errors %}
+                            <div class="text-danger mt-1" style="font-size: 0.75rem;">{{ form.username.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted fw-medium mb-1" style="font-size: 0.85rem;">Email <span class="text-danger">*</span></label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <div class="text-danger mt-1" style="font-size: 0.75rem;">{{ form.email.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted fw-medium mb-1" style="font-size: 0.85rem;">Пароль <span class="text-danger">*</span></label>
+                        {{ form.password }}
+                        {% if form.password.errors %}
+                            <div class="text-danger mt-1" style="font-size: 0.75rem;">{{ form.password.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted fw-medium mb-1" style="font-size: 0.85rem;">Телефон</label>
+                        {{ form.phone }}
+                        {% if form.phone.errors %}
+                            <div class="text-danger mt-1" style="font-size: 0.75rem;">{{ form.phone.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label text-muted fw-medium mb-1" style="font-size: 0.85rem;">Права доступа</label>
+                        {{ form.role }}
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="mock-btn text-dark bg-white border" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="mock-btn border-0 text-white" style="background-color: #1a1a1a;">Создать</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

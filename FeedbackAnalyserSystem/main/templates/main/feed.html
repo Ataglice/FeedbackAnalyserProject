@@ -71,7 +71,7 @@
                 <div class="d-flex justify-content-between align-items-start mb-2"> 
                     <div>
                         <div class="mb-0"> <span class="mock-tags" style="font-weight: 500;">#{{ feedback.category|default:"отзыв" }}</span></div>
-                        <div class="mock-text-sm text-muted">{{ feedback.source_id|default:"Неизвестный источник" }}</div>
+                        <div class="mock-text-sm text-muted">{{ feedback.platform.name|default:"Неизвестный источник" }}</div>
                     </div>
                     <div class="d-flex align-items-center text-muted mock-text-sm">
                         <span class="me-2">{{ feedback.created_at|date:"d.m.y H:i" }}</span> <i class="bi bi-three-dots cursor-pointer" style="font-size: 1.1rem;"></i>
@@ -163,10 +163,11 @@
 
                     <div class="mb-3">
                         <label class="d-block text-muted mb-1 fw-medium" style="font-size: 0.85rem;">Площадка</label>
-                        <select name="source_filter" class="mock-input mock-rect w-100" style="padding: 6px 10px;">
-                            <option value="" {% if not request.GET.source_filter %}selected{% endif %}>Все площадки</option>
-                            <option value="озон" {% if request.GET.source_filter == "озон" %}selected{% endif %}>озон</option>
-                            <option value="wildberries" {% if request.GET.source_filter == "wildberries" %}selected{% endif %}>wildberries</option>
+                        <select name="source_filter" class="mock-input mock-rect w-100">
+                            <option value="">Все площадки</option>
+                            {% for p in platforms %}
+                                <option value="{{ p.name }}" {% if request.GET.source_filter == p.name %}selected{% endif %}>{{ p.name }}</option>
+                            {% endfor %}
                         </select>
                     </div>
 
