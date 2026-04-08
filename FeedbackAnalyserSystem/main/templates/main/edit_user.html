@@ -1,0 +1,61 @@
+{% extends "main/base.html" %}
+{% load static %}
+
+{% block title %}Редактирование: {{ user_to_edit.username }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mock-bg d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="mock-card" style="width: 100%; max-width: 500px; padding: 30px;">
+        
+        <div class="d-flex align-items-center mb-4 pb-2" style="border-bottom: 1px solid #e0e0e0;">
+            <a href="{% url 'config' %}" class="text-dark text-decoration-none me-3">
+                <i class="bi bi-arrow-left fs-5"></i>
+            </a>
+            <h4 class="mb-0 fw-bold">Редактирование сотрудника</h4>
+        </div>
+
+        <form method="POST" action="">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger p-2 mb-3" style="font-size: 0.85rem;">
+                    {{ form.non_field_errors.0 }}
+                </div>
+            {% endif %}
+
+            <div class="mb-3">
+                <label class="form-label text-muted fw-medium mb-1" style="font-size: 0.85rem;">Логин <span class="text-danger">*</span></label>
+                {{ form.username }}
+                {% if form.username.errors %}
+                    <div class="text-danger mt-1" style="font-size: 0.75rem;">{{ form.username.errors.0 }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label text-muted fw-medium mb-1" style="font-size: 0.85rem;">Email <span class="text-danger">*</span></label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                    <div class="text-danger mt-1" style="font-size: 0.75rem;">{{ form.email.errors.0 }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label text-muted fw-medium mb-1" style="font-size: 0.85rem;">Телефон</label>
+                {{ form.phone }}
+                {% if form.phone.errors %}
+                    <div class="text-danger mt-1" style="font-size: 0.75rem;">{{ form.phone.errors.0 }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="mb-4">
+                <label class="form-label text-muted fw-medium mb-1" style="font-size: 0.85rem;">Права доступа</label>
+                {{ form.role }}
+            </div>
+
+            <button type="submit" class="mock-btn w-100 text-white border-0" style="background-color: #1a1a1a; padding: 10px; font-size: 1rem;">
+                Сохранить изменения
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock content %}

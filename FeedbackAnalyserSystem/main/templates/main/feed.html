@@ -32,6 +32,7 @@
                     <input type="hidden" name="date_to" value="{{ request.GET.date_to|default_if_none:'' }}">
                     <input type="hidden" name="source_filter" value="{{ request.GET.source_filter|default_if_none:'' }}">
                     <input type="hidden" name="tag_filter" value="{{ request.GET.tag_filter|default_if_none:'' }}">
+                    <input type="hidden" name="rating_filter" value="{{ request.GET.rating_filter|default_if_none:'' }}">
                 </form>
             </div>
 
@@ -42,7 +43,7 @@
                     {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
                     
                     {% if page_obj.has_previous %}
-                        <a href="?page={{ page_obj.previous_page_number }}&search_query={{ request.GET.search_query|default_if_none:'' }}&date_from={{ request.GET.date_from|default_if_none:'' }}&date_to={{ request.GET.date_to|default_if_none:'' }}&source_filter={{ request.GET.source_filter|default_if_none:'' }}&tag_filter={{ request.GET.tag_filter|default_if_none:'' }}" class="text-dark text-decoration-none">
+                        <a href="?page={{ page_obj.previous_page_number }}&search_query={{ request.GET.search_query|default_if_none:'' }}&date_from={{ request.GET.date_from|default_if_none:'' }}&date_to={{ request.GET.date_to|default_if_none:'' }}&source_filter={{ request.GET.source_filter|default_if_none:'' }}&tag_filter={{ request.GET.tag_filter|default_if_none:'' }}&rating_filter={{ request.GET.rating_filter|default_if_none:'' }}" class="text-dark text-decoration-none">
                             <i class="bi bi-arrow-left-short mx-1" style="border:1px solid #4a4a4a; padding: 0 4px; border-radius: 2px;"></i>
                         </a>
                     {% else %}
@@ -50,7 +51,7 @@
                     {% endif %}
 
                     {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}&search_query={{ request.GET.search_query|default_if_none:'' }}&date_from={{ request.GET.date_from|default_if_none:'' }}&date_to={{ request.GET.date_to|default_if_none:'' }}&source_filter={{ request.GET.source_filter|default_if_none:'' }}&tag_filter={{ request.GET.tag_filter|default_if_none:'' }}" class="text-dark text-decoration-none">
+                        <a href="?page={{ page_obj.next_page_number }}&search_query={{ request.GET.search_query|default_if_none:'' }}&date_from={{ request.GET.date_from|default_if_none:'' }}&date_to={{ request.GET.date_to|default_if_none:'' }}&source_filter={{ request.GET.source_filter|default_if_none:'' }}&tag_filter={{ request.GET.tag_filter|default_if_none:'' }}&rating_filter={{ request.GET.rating_filter|default_if_none:'' }}" class="text-dark text-decoration-none">
                             <i class="bi bi-arrow-right-short mx-1" style="border:1px solid #4a4a4a; padding: 0 4px; border-radius: 2px;"></i>
                         </a>
                     {% else %}
@@ -76,6 +77,13 @@
                     <div class="d-flex align-items-center text-muted mock-text-sm">
                         <span class="me-2">{{ feedback.created_at|date:"d.m.y H:i" }}</span> <i class="bi bi-three-dots cursor-pointer" style="font-size: 1.1rem;"></i>
                     </div>
+                </div>
+
+                <div class="mb-2">
+                    {% for i in "12345" %}
+                        <i class="bi bi-star-fill {% if feedback.rating >= forloop.counter|add:0 %}text-warning{% else %}text-muted{% endif %}" style="font-size: 0.8rem;"></i>
+                    {% endfor %}
+                    <span class="ms-1 mock-text-sm fw-bold">{{ feedback.rating|default:"0.0" }}</span>
                 </div>
 
                 <div class="mock-input w-100 mb-2" style="border-radius: 4px; padding: 6px 10px; white-space: pre-wrap; word-break: break-word; background-color: #fff; border-color: #666;">{{ feedback.text }}</div> 
@@ -150,14 +158,17 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="d-block text-muted mb-1 fw-medium" style="font-size: 0.85rem;">Рейтинг</label>
-                        <div class="d-flex align-items-center bg-white border rounded" style="padding: 6px 10px; border-color: #4a4a4a !important;">
-                            <i class="bi bi-star-fill star-filled me-1"></i>
-                            <i class="bi bi-star-fill star-filled me-1"></i>
-                            <i class="bi bi-star-fill star-filled me-1"></i>
-                            <i class="bi bi-star-fill star-empty me-1"></i>
-                            <i class="bi bi-star-fill star-empty"></i>
-                            <span class="ms-auto text-muted" style="font-size: 0.8rem;">и выше</span>
+                        <label class="d-block text-muted mb-1 fw-medium" style="font-size: 0.85rem;">Минимальный рейтинг</label>
+                        <div class="d-flex align-items-center bg-white border rounded p-2" style="border-color: #4a4a4a !important;">
+                            <select name="rating_filter" class="form-select form-select-sm border-0 p-0 shadow-none" style="font-size: 0.85rem;">
+                                <option value="" {% if not request.GET.rating_filter %}selected{% endif %}>Любой рейтинг</option>
+                                <option value="5" {% if request.GET.rating_filter == "5" %}selected{% endif %}>5 звезд</option>
+                                <option value="4" {% if request.GET.rating_filter == "4" %}selected{% endif %}>4 звезды и выше</option>
+                                <option value="3" {% if request.GET.rating_filter == "3" %}selected{% endif %}>3 звезды и выше</option>
+                                <option value="2" {% if request.GET.rating_filter == "2" %}selected{% endif %}>2 звезды и выше</option>
+                                <option value="1" {% if request.GET.rating_filter == "1" %}selected{% endif %}>1 звезда и выше</option>
+                            </select>
+                            <i class="bi bi-star-fill text-warning ms-2"></i>
                         </div>
                     </div>
 

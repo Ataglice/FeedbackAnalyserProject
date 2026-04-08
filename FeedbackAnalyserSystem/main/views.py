@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from datetime import timedelta
@@ -6,11 +6,12 @@ from django.db.models import Avg, Q, Count
 from django.db.models.functions import TruncDate
 from django.core.paginator import Paginator
 from django.contrib.auth.models import User
+from django.db import transaction
 
 from users.models import Platform
 from users.models import Feedback, SentimanetAnalyze, EmployeeProfile
-from users.forms import EmployeeCreationForm
-from django.db import transaction
+from users.forms import EmployeeCreationForm, EmployeeEditForm
+
 
 
 @login_required(login_url='/users/login/')
@@ -107,6 +108,7 @@ def feedback_view(request):
     selected_source = request.GET.get('source_filter')
     selected_tag = request.GET.get('tag_filter')
     selected_search = request.GET.get('search_query')
+    selected_rating = request.GET.get('rating_filter')
 
     if date_from:
         all_feedbacks = all_feedbacks.filter(created_at__date__gte=date_from)
@@ -120,6 +122,8 @@ def feedback_view(request):
         all_feedbacks = all_feedbacks.filter(category__icontains=selected_tag)
     if selected_search:
         all_feedbacks = all_feedbacks.filter(text__icontains=selected_search)
+    if selected_rating and selected_rating.isdigit():
+        all_feedbacks = all_feedbacks.filter(rating__gte=float(selected_rating))
 
     all_feedbacks = all_feedbacks.order_by('-created_at')
 
@@ -169,7 +173,35 @@ def config(request):
     else:
         form = EmployeeCreationForm()
 
-    all_users = User.objects.filter(profile__company=user_company).order_by('-date_joined')
+    all_users = User.objects.filter(profile__company=user_company)
+
+    search_query = request.GET.get('search', '')
+    role_filter = request.GET.get('role', '')
+    status_filter = request.GET.get('status', '')
+    sort_date = request.GET.get('sort_date', '-date_joined')
+
+    if search_query:
+        all_users = all_users.filter(
+            Q(username__icontains=search_query) | 
+            Q(email__icontains=search_query) |
+            Q(profile__phone__icontains=search_query)
+        )
+    if role_filter == 'admin':
+        all_users = all_users.filter(is_superuser=True)
+    elif role_filter == 'manager':
+        all_users = all_users.filter(is_staff=True, is_superuser=False)
+    elif role_filter == 'user':
+        all_users = all_users.filter(is_staff=False, is_superuser=False)
+
+    if status_filter == 'active':
+        all_users = all_users.filter(is_active=True)
+    elif status_filter == 'inactive':
+        all_users = all_users.filter(is_active=False)
+
+    if sort_date in ['date_joined', '-date_joined']:
+        all_users = all_users.order_by(sort_date)
+    else:
+        all_users = all_users.order_by('-date_joined')
 
     paginator = Paginator(all_users, 5)
     page_number = request.GET.get('page')
@@ -180,3 +212,45 @@ def config(request):
         'form': form 
     }
     return render(request, 'main/config.html', context)
+
+@login_required(login_url='/users/login/')
+def delete_employee(request, user_id):
+    if request.method == 'POST':
+        user_company = request.user.profile.company
+
+        user_to_delete = get_object_or_404(User, id=user_id, profile__company=user_company)
+
+        if user_to_delete.id == request.user.id:
+            return redirect('config')
+
+        user_to_delete.delete()
+
+    return redirect('config')
+
+
+@login_required(login_url='/users/login/')
+def edit_employee(request, user_id):
+    user_company = request.user.profile.company
+    
+    user_to_edit = get_object_or_404(User, id=user_id, profile__company=user_company)
+
+    if request.method == 'POST':
+        form = EmployeeEditForm(request.POST, instance=user_to_edit)
+        if form.is_valid():
+            with transaction.atomic():
+                form.save()
+            return redirect('config')
+    else:
+        form = EmployeeEditForm(instance=user_to_edit)
+
+    context = {
+        'form': form,
+        'user_to_edit': user_to_edit
+    }
+    return render(request, 'main/edit_user.html', context)
+
+@login_required(login_url='/users/login/')
+def dictionary_view(request):
+
+    context = {}
+    return render(request, 'main/dictionary.html', context)

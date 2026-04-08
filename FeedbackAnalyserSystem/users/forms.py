@@ -31,3 +31,42 @@ class EmployeeCreationForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+    
+
+class EmployeeEditForm(forms.ModelForm):
+    phone = forms.CharField(max_length=20, required=False, widget=forms.TextInput(attrs={'class': 'mock-input w-100'}))
+    
+    ROLE_CHOICES = [
+        ('user', 'Обычный пользователь'),
+        ('manager', 'Менеджер (доступ к настройкам)')
+    ]
+    role = forms.ChoiceField(choices=ROLE_CHOICES, widget=forms.Select(attrs={'class': 'mock-input w-100'}))
+
+    class Meta:
+        model = User
+        fields = ['username', 'email']
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'mock-input w-100'}),
+            'email': forms.EmailInput(attrs={'class': 'mock-input w-100'}),
+        }
+
+    # Инициализация: предзаполняем поля из связанной таблицы 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and hasattr(self.instance, 'profile'):
+            self.fields['phone'].initial = self.instance.profile.phone
+            self.fields['role'].initial = 'manager' if self.instance.is_staff else 'user'
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        
+        user.is_staff = (self.cleaned_data['role'] == 'manager')
+
+        if commit:
+            user.save()
+            profile = user.profile
+            profile.phone = self.cleaned_data['phone']
+            profile.slug = user.username 
+            profile.save()
+            
+        return user

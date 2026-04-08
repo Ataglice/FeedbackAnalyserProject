@@ -1,0 +1,36 @@
+{% extends "main/base.html" %}
+{% load static %}
+
+{% block title %} Словарь тональности {% endblock %}
+
+{% block content %}
+<div class="container-fluid mock-bg">
+    <h2 class="fw-bold mb-4">Admin Panel</h2>
+
+    <div class="row">
+        <div class="col-md-3 admin-sidebar">
+            <a href="{% url 'config' %}" class="admin-nav-item">
+                <i class="bi bi-person-badge"></i>
+                <span>Управление пользователями</span>
+            </a>
+            <a href="{% url 'dictionary' %}" class="admin-nav-item active">
+                <i class="bi bi-journal-text"></i>
+                <span>Управление словарем тональности</span>
+            </a>
+            <a href="#" class="admin-nav-item">
+                <i class="bi bi-bell"></i>
+                <span>Настройки уведомлений</span>
+            </a>
+        </div>
+
+        <div class="col-md-9">
+            <div class="admin-table-container">
+                <h4 class="mb-4">Sentiment Dictionary</h4>
+                
+                <p class="text-muted">Здесь будет интерфейс управления словарем...</p>
+                
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
