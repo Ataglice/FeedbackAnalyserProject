@@ -25,10 +25,273 @@
 
         <div class="col-md-9">
             <div class="admin-table-container">
-                <h4 class="mb-4">Sentiment Dictionary</h4>
+                <h4 class="mb-4">Словарные якоря</h4>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-3 py-2" role="alert" style="font-size: 0.9rem;">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="padding: 0.75rem;"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                    <form method="GET" action="{% url 'dictionary' %}" class="d-flex gap-2 align-items-center m-0">
+                        <div class="position-relative">
+                            <i class="bi bi-search position-absolute" style="left: 10px; top: 50%; transform: translateY(-50%); color: #666;"></i>
+                            <input type="text" name="search" value="{{ search_query }}" class="mock-input mock-pill ps-5" placeholder="Поиск слова..." style="width: 200px;">
+                            <button type="submit" class="d-none"></button>
+                        </div>
+                        
+                        <select name="sentiment" class="filter-btn mock-input py-1" style="appearance: auto;" onchange="this.form.submit()">
+                            <option value="">Все категории</option>
+                            <option value="POSITIVE" {% if sentiment_filter == 'POSITIVE' %}selected{% endif %}>Позитивные</option>
+                            <option value="NEGATIVE" {% if sentiment_filter == 'NEGATIVE' %}selected{% endif %}>Негативные</option>
+                        </select>
+
+                        <select name="language" class="filter-btn mock-input py-1" style="appearance: auto;" onchange="this.form.submit()">
+                            <option value="">Все языки</option>
+                            <option value="ru" {% if language_filter == 'ru' %}selected{% endif %}>Русский</option>
+                            <option value="en" {% if language_filter == 'en' %}selected{% endif %}>Английский</option>
+                        </select>
+
+                        <select name="status" class="filter-btn mock-input py-1" style="appearance: auto;" onchange="this.form.submit()">
+                            <option value="">Все статусы</option>
+                            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Включен</option>
+                            <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Отключен</option>
+                        </select>
+                    </form>
+                    
+                    <div class="d-flex gap-2">
+                        <button class="btn-export" data-bs-toggle="modal" data-bs-target="#importExcelModal">
+                            <i class="bi bi-upload me-1"></i> импорт
+                        </button>
+
+                        <button class="btn-add-user" data-bs-toggle="modal" data-bs-target="#addWordModal">+ добавить слово</button>
+                    </div>
+                </div>
+
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Слово / Фраза</th>
+                            <th>Тональность</th>
+                            <th>Язык</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for word in page_obj %}
+                        <tr style="border-bottom: 1px solid #dee2e6;">
+                            <td class="fw-bold">{{ word.text }}</td>
+                            <td>
+                                {% if word.sentiment == 'POSITIVE' %}
+                                    <span class="badge" style="background-color: #e6f4ea; color: #1e8e3e;">Позитивный</span>
+                                {% elif word.sentiment == 'NEGATIVE' %}
+                                    <span class="badge" style="background-color: #fce8e6; color: #d93025;">Негативный</span>
+                                {% else %}
+                                    <span class="badge bg-secondary text-white">Нейтральный</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-uppercase text-muted" style="font-size: 0.85rem;">{{ word.language }}</td>
+                            <td>
+                                {% if word.is_active %}
+                                    <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>включен</span>
+                                {% else %}
+                                    <span class="text-muted"><i class="bi bi-power me-1"></i>отключен</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <i class="bi bi-pencil-square me-3 cursor-pointer text-muted" 
+                                    title="Редактировать" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#editWordModal-{{ word.id }}"
+                                    style="cursor: pointer;">
+                                </i>
+
+                                <form method="POST" action="{% url 'delete_anchor' word.id %}" class="d-inline" onsubmit="return confirm('Вы точно хотите навсегда удалить слово «{{ word.text }}»?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="border-0 bg-transparent p-0 m-0">
+                                        <i class="bi bi-trash text-danger cursor-pointer" title="Удалить"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+
+                        <div class="modal fade text-start" id="editWordModal-{{ word.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content" style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px;">
+                                    
+                                    <div class="modal-header" style="border-bottom: 1px solid #e0e0e0;">
+                                        <h5 class="modal-title fw-bold">Редактировать: «{{ word.text }}»</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    
+                                    <div class="modal-body text-dark">
+                                        <form method="POST" action="{% url 'edit_anchor' word.id %}">
+                                            {% csrf_token %}
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label text-muted fw-medium mb-1" style="font-size: 0.85rem;">Слово или Фраза <span class="text-danger">*</span></label>
+                                                <input type="text" name="text" value="{{ word.text }}" class="mock-input w-100" required>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label text-muted fw-medium mb-1" style="font-size: 0.85rem;">Тональность <span class="text-danger">*</span></label>
+                                                <select name="sentiment" class="mock-input w-100">
+                                                    <option value="POSITIVE" {% if word.sentiment == 'POSITIVE' %}selected{% endif %}>Позитивный</option>
+                                                    <option value="NEGATIVE" {% if word.sentiment == 'NEGATIVE' %}selected{% endif %}>Негативный</option>
+                                                    <option value="NEUTRAL" {% if word.sentiment == 'NEUTRAL' %}selected{% endif %}>Нейтральный</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label text-muted fw-medium mb-1" style="font-size: 0.85rem;">Язык <span class="text-danger">*</span></label>
+                                                <select name="language" class="mock-input w-100">
+                                                    <option value="ru" {% if word.language == 'ru' %}selected{% endif %}>Русский</option>
+                                                    <option value="en" {% if word.language == 'en' %}selected{% endif %}>Английский</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div class="mb-4 d-flex align-items-center">
+                                                <label class="form-label text-muted fw-medium mb-0 me-2" style="font-size: 0.85rem;">Слово активно (участвует в анализе)</label>
+                                                <input type="checkbox" name="is_active" class="form-check-input ms-2" {% if word.is_active %}checked{% endif %}>
+                                            </div>
+                        
+                                            <div class="d-flex justify-content-end gap-2">
+                                                <button type="button" class="mock-btn text-dark bg-white border" data-bs-dismiss="modal">Отмена</button>
+                                                <button type="submit" class="mock-btn border-0 text-white" style="background-color: #1a1a1a;">Сохранить изменения</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">Слова не найдены. Добавьте новые якоря.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
                 
-                <p class="text-muted">Здесь будет интерфейс управления словарем...</p>
+                <div class="d-flex justify-content-between align-items-center mt-3 px-1 mock-text-sm">
+                    <span>Всего записей: {{ page_obj.paginator.count }}</span>
+                    <span>
+                        {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+                        
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}&search={{ search_query }}&sentiment={{ sentiment_filter }}&language={{ language_filter }}&status={{ status_filter }}" class="text-dark text-decoration-none">
+                                <i class="bi bi-arrow-left-short mx-1" style="border:1px solid #4a4a4a; border-radius: 2px;"></i>
+                            </a>
+                        {% endif %}
+
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}&search={{ search_query }}&sentiment={{ sentiment_filter }}&language={{ language_filter }}&status={{ status_filter }}" class="text-dark text-decoration-none">
+                                <i class="bi bi-arrow-right-short mx-1" style="border:1px solid #4a4a4a; border-radius: 2px;"></i>
+                            </a>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addWordModal" tabindex="-1" aria-labelledby="addWordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px;">
+            
+            <div class="modal-header" style="border-bottom: 1px solid #e0e0e0;">
+                <h5 class="modal-title fw-bold" id="addWordModalLabel">Новый словарный якорь</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body">
+                <form method="POST" action="{% url 'dictionary' %}">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger p-2 mb-3" style="font-size: 0.85rem;">
+                            {{ form.non_field_errors.0 }}
+                        </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted fw-medium mb-1" style="font-size: 0.85rem;">Слово или Фраза <span class="text-danger">*</span></label>
+                        {{ form.text }}
+                        {% if form.text.errors %}
+                            <div class="text-danger mt-1" style="font-size: 0.75rem;">{{ form.text.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted fw-medium mb-1" style="font-size: 0.85rem;">Тональность <span class="text-danger">*</span></label>
+                        {{ form.sentiment }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted fw-medium mb-1" style="font-size: 0.85rem;">Язык <span class="text-danger">*</span></label>
+                        {{ form.language }}
+                    </div>
+                    
+                    <div class="mb-4 d-flex align-items-center">
+                        <label class="form-label text-muted fw-medium mb-0 me-2" style="font-size: 0.85rem;">Слово активно (участвует в анализе)</label>
+                        {{ form.is_active }}
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="mock-btn text-dark bg-white border" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="mock-btn border-0 text-white" style="background-color: #1a1a1a;">Сохранить слово</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if form.errors %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var myModal = new bootstrap.Modal(document.getElementById('addWordModal'));
+        myModal.show();
+    });
+</script>
+{% endif %}
+
+<div class="modal fade text-start" id="importExcelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px;">
+            
+            <div class="modal-header" style="border-bottom: 1px solid #e0e0e0;">
+                <h5 class="modal-title fw-bold">Импорт словаря из Excel</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body text-dark">
+                <div class="alert alert-info py-2" style="font-size: 0.85rem;">
+                    <strong>Требования к файлу:</strong><br>
+                    Первая строка — заголовки (игнорируются).<br>
+                    Столбец A — Слово или фраза.<br>
+                    Столбец B — Тональность (строго: POSITIVE, NEGATIVE).<br>
+                    Столбец C — Язык (ru или en).
+                </div>
                 
+                <form method="POST" action="{% url 'import_anchors' %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label class="form-label text-muted fw-medium mb-1" style="font-size: 0.85rem;">Выберите файл (.xlsx)</label>
+                        <input type="file" name="excel_file" class="form-control" accept=".xlsx" required>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="mock-btn text-dark bg-white border" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="mock-btn border-0 text-white" style="background-color: #1a1a1a;">Загрузить и обновить ИИ</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

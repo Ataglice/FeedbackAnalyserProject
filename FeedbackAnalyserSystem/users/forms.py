@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import EmployeeProfile
+from .models import EmployeeProfile, SentimentAnchor
+
 
 class EmployeeCreationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'mock-input w-100', 'placeholder': 'Пароль'}))
@@ -70,3 +71,14 @@ class EmployeeEditForm(forms.ModelForm):
             profile.save()
             
         return user
+    
+class SentimentAnchorForm(forms.ModelForm):
+    class Meta:
+        model = SentimentAnchor
+        fields = ['text', 'sentiment', 'language', 'is_active']
+        widgets = {
+            'text': forms.TextInput(attrs={'class': 'mock-input w-100', 'placeholder': 'Введите слово или фразу', 'required': True}),
+            'sentiment': forms.Select(attrs={'class': 'mock-input w-100'}),
+            'language': forms.Select(attrs={'class': 'mock-input w-100'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input ms-2'})
+        }

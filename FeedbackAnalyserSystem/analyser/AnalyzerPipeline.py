@@ -4,44 +4,47 @@ from transformers import pipeline
 import re
 import json
 import os
+from users.models import SentimentAnchor
 
 class SentimentAnalyzer:
 
-    def __init__(self, ru_anchors_path = 'sentiment_anchors_ru.json', en_anchors_path = 'anchors.json'):
+    def __init__(self):
         
-        #?                   инициализация моделей и эмбедингов
+        #? инициализация моделей и эмбедингов
         self.embedder_en = SentenceTransformer('all-MiniLM-L6-v2')
         self.embedder_ru = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
 
-        #!                   инициализация Vader
+        #! инициализация Vader
         self.analyzer = SentimentIntensityAnalyzer()
 
-        #*                   инициализация пайплайнов классификации
+        #* инициализация пайплайнов классификации
         self.sentiment_pipe_ru = pipeline("sentiment-analysis", model="blanchefort/rubert-base-cased-sentiment")
         self.sentiment_pipe_en = pipeline("sentiment-analysis", model="distilbert/distilbert-base-uncased-finetuned-sst-2-english")
 
-
-        #?        пути к якорям
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        ru_path = os.path.join(base_dir, ru_anchors_path)
-        en_path = os.path.join(base_dir, en_anchors_path)
-
-        #?      Загрузка и кодирование якорей для эмбэдинга
-        self.ru_sentiment_anchors = self._load_and_encode_anchors(ru_path, self.embedder_ru)
-        self.en_sentiment_anchors = self._load_and_encode_anchors(en_path, self.embedder_en)
+        #? Загрузка и кодирование якорей НАПРЯМУЮ ИЗ БАЗЫ ДАННЫХ
+        self.ru_sentiment_anchors = self._encode_anchors_from_db('ru', self.embedder_ru)
+        self.en_sentiment_anchors = self._encode_anchors_from_db('en', self.embedder_en)
 
 
     #?    закодированные якоря
-    def _load_and_encode_anchors(self, file_path, embedder_model):
+    def _encode_anchors_from_db(self, language_code, embedder_model):
         encoded_anchors = {}
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                raw_anchors = json.load(f)
-            for sentiment, sentences in raw_anchors.items():
-                encoded_anchors[sentiment.upper()] = embedder_model.encode(sentences)
-        except FileNotFoundError:
-            print(f"Файл {file_path} не найден. Якоря не загружены.")
+        
+        raw_anchors = SentimentAnchor.get_anchors_as_dict(target_language=language_code)
+        
+        if not raw_anchors:
+            print(f"ВНИМАНИЕ: Словарь для языка '{language_code}' пуст или не найден в БД.")
+            
+        for sentiment, sentences in raw_anchors.items():
+            encoded_anchors[sentiment.upper()] = embedder_model.encode(sentences)
+            
         return encoded_anchors
+    
+    def reload_anchors(self):
+        """Метод для принудительного обновления якорей из БД без перезагрузки сервера"""
+        self.ru_sentiment_anchors = self._encode_anchors_from_db('ru', self.embedder_ru)
+        self.en_sentiment_anchors = self._encode_anchors_from_db('en', self.embedder_en)
+        
 
 
 

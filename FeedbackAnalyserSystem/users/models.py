@@ -73,3 +73,38 @@ class SentimanetAnalyze(models.Model):
     def __str__(self):
         return f"Analysis ({self.type}) for Feedback ID: {self.feedback_id}"
  
+class SentimentAnchor(models.Model):
+    SENTIMENT_CHOICES = [
+        ('POSITIVE', 'Позитивный'),
+        ('NEGATIVE', 'Негативный')
+    ]
+    LANGUAGE_CHOICES = [
+        ('ru', 'Русский'),
+        ('en', 'Английский'),
+    ]
+
+    text = models.CharField(max_length=255, verbose_name="Якорь (фраза/слово)")
+    sentiment = models.CharField(max_length=15, choices=SENTIMENT_CHOICES, verbose_name="Тональность")
+    language = models.CharField(max_length=5, choices=LANGUAGE_CHOICES, default='ru', verbose_name="Язык")
+    is_active = models.BooleanField(default=True, verbose_name="Активен")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Словарный якорь"
+        verbose_name_plural = "Словарные якоря"
+        unique_together = ('text', 'language')
+    
+    def __str__(self):
+        return f"[{self.sentiment}] {self.text} ({self.language})"
+    
+    @classmethod
+    def get_anchors_as_dict(cls, target_language='ru'):
+        anchors_dict = {'POSITIVE': [], 'NEGATIVE': [], 'NEUTRAL': []}
+        
+        active_anchors = cls.objects.filter(is_active=True, language=target_language)
+        
+        for anchor in active_anchors:
+            if anchor.sentiment in anchors_dict:
+                anchors_dict[anchor.sentiment].append(anchor.text)
+                
+        return {k: v for k, v in anchors_dict.items() if v}

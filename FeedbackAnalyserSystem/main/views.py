@@ -7,12 +7,17 @@ from django.db.models.functions import TruncDate
 from django.core.paginator import Paginator
 from django.contrib.auth.models import User
 from django.db import transaction
+from django.contrib import messages
 
-from users.models import Platform
+from users.models import Platform, SentimentAnchor
 from users.models import Feedback, SentimanetAnalyze, EmployeeProfile
 from users.forms import EmployeeCreationForm, EmployeeEditForm
 
+from users.forms import SentimentAnchorForm
+from users.views import get_analyzer
 
+from django.views.decorators.http import require_POST
+import openpyxl
 
 @login_required(login_url='/users/login/')
 def dashboard_view(request):
@@ -251,6 +256,134 @@ def edit_employee(request, user_id):
 
 @login_required(login_url='/users/login/')
 def dictionary_view(request):
+    if request.method == 'POST':
+        form = SentimentAnchorForm(request.POST)
+        if form.is_valid():
+            form.save()
+            
+            try:
+                analyzer = get_analyzer()
+                analyzer.reload_anchors()
+            except NameError:
+                print("Функция get_analyzer не импортирована. Перезапустите сервер вручную.")
+                
+            return redirect('dictionary')
+    else:
+        form = SentimentAnchorForm()
 
-    context = {}
+    anchors = SentimentAnchor.objects.all().order_by('-created_at')
+
+    search_query = request.GET.get('search', '')
+    sentiment_filter = request.GET.get('sentiment', '')
+    language_filter = request.GET.get('language', '')  
+    status_filter = request.GET.get('status', '')
+
+    if search_query:
+        anchors = anchors.filter(text__icontains=search_query)
+    
+    if sentiment_filter:
+        anchors = anchors.filter(sentiment=sentiment_filter)
+
+    if language_filter:
+        anchors = anchors.filter(language=language_filter)
+        
+    if status_filter == 'active':
+        anchors = anchors.filter(is_active=True)
+    elif status_filter == 'inactive':
+        anchors = anchors.filter(is_active=False)
+
+    paginator = Paginator(anchors, 15)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'page_obj': page_obj,
+        'search_query': search_query,
+        'sentiment_filter': sentiment_filter,
+        'language_filter': language_filter, 
+        'status_filter': status_filter,
+        'form': form, 
+    }
     return render(request, 'main/dictionary.html', context)
+
+@login_required(login_url='/users/login/')
+@require_POST
+def delete_anchor(request, pk):
+    anchor = get_object_or_404(SentimentAnchor, pk=pk)
+    anchor.delete()
+    
+    try:
+        analyzer = get_analyzer()
+        analyzer.reload_anchors()
+    except Exception as e:
+        print(f"Ошибка обновления словаря: {e}")
+        
+    return redirect('dictionary')
+
+@login_required(login_url='/users/login/')
+@require_POST
+def edit_anchor(request, pk):
+    anchor = get_object_or_404(SentimentAnchor, pk=pk)
+    
+    form = SentimentAnchorForm(request.POST, instance=anchor)
+    
+    if form.is_valid():
+        form.save()
+        
+        try:
+            analyzer = get_analyzer()
+            analyzer.reload_anchors()
+        except Exception as e:
+            print(f"Ошибка обновления словаря: {e}")
+            
+    return redirect('dictionary')
+
+
+
+@login_required(login_url='/users/login/')
+@require_POST
+def import_anchors(request):
+    excel_file = request.FILES.get('excel_file')
+    
+    # Базовая валидация
+    if not excel_file or not excel_file.name.endswith('.xlsx'):
+        messages.error(request, "Ошибка: Пожалуйста, загрузите файл формата .xlsx")
+        return redirect('dictionary')
+
+    try:
+        # Читаем Excel файл напрямую из оперативной памяти (без сохранения на диск)
+        wb = openpyxl.load_workbook(excel_file, data_only=True)
+        sheet = wb.active
+        
+        new_anchors = []
+        valid_sentiments = ['POSITIVE', 'NEGATIVE']
+        
+        # Начинаем со 2-й строки (min_row=2), так как в 1-й строке будут заголовки
+        for row in sheet.iter_rows(min_row=2, values_only=True):
+            text = row[0]
+            sentiment = row[1]
+            language = row[2] if len(row) > 2 and row[2] else 'ru' 
+            
+            # Если строка не пустая и тональность указана верно
+            if text and sentiment in valid_sentiments:
+                new_anchors.append(SentimentAnchor(
+                    text=str(text).strip(),
+                    sentiment=str(sentiment).strip().upper(),
+                    language=str(language).strip().lower()
+                ))
+
+        # Массовое сохранение (ignore_conflicts=True пропустит слова, которые уже есть в базе)
+        if new_anchors:
+            SentimentAnchor.objects.bulk_create(new_anchors, ignore_conflicts=True)
+            
+            analyzer = get_analyzer()
+            analyzer.reload_anchors()
+            
+            messages.success(request, f"Успешно обработано {len(new_anchors)} слов. Словарь ИИ обновлен.")
+        else:
+            messages.warning(request, "Файл пуст или данные не соответствуют формату.")
+            
+    except Exception as e:
+        messages.error(request, f"Произошла ошибка при чтении файла: {e}")
+
+    return redirect('dictionary')

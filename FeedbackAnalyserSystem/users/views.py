@@ -7,10 +7,11 @@ from rest_framework import generics
 from .models import Feedback, SentimanetAnalyze
 from api.serializers import DataRecordSerializer
 from analyser.AnalyzerPipeline import SentimentAnalyzer
-import json
-from django.http import JsonResponse
+
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+
+
 '''
 def user(request):
     myusers = User.objects.all().values()
@@ -62,7 +63,14 @@ def logout_view(request):
         logout(request)
         return redirect("login")
 
-nlp_analyzer = SentimentAnalyzer()
+nlp_analyzer = None
+
+def get_analyzer():
+    global nlp_analyzer
+    if nlp_analyzer is None:
+        print(">>> Загрузка AI-моделей в память... <<<")
+        nlp_analyzer = SentimentAnalyzer()
+    return nlp_analyzer
 
 
 class DataRecordCreateView(generics.CreateAPIView):
@@ -73,7 +81,8 @@ class DataRecordCreateView(generics.CreateAPIView):
         feedback_instance = serializer.save()
         text_to_analyze = feedback_instance.text
 
-        result = nlp_analyzer.smart_analyze(text_to_analyze)
+        analyzer = get_analyzer()
+        result = analyzer.smart_analyze(text_to_analyze)
 
         type_data = result.get('type', {})
         overall_value = result.get('value', 0.0)

@@ -7,6 +7,8 @@ urlpatterns = [
     path('config/', views.config, name="config"),
     path('config/delete-user/<int:user_id>/', views.delete_employee, name='delete_employee'),
     path('config/edit-user/<int:user_id>/', views.edit_employee, name='edit_employee'),
-    path('config/dictionary/', views.dictionary_view, name='dictionary')
-
+    path('config/dictionary/', views.dictionary_view, name='dictionary'),
+    path('config/dictionary/delete/<int:pk>/', views.delete_anchor, name='delete_anchor'),
+    path('config/dictionary/edit/<int:pk>/', views.edit_anchor, name='edit_anchor'),
+    path('config/dictionary/import/', views.import_anchors, name='import_anchors')
 ]
