@@ -11,10 +11,13 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+load_dotenv(BASE_DIR / '.env')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
@@ -41,6 +44,7 @@ INSTALLED_APPS = [
     'main.apps.MainConfig',
     'bootstrap5',
     'rest_framework',
+    'rest_framework_api_key',
 ]
 
 MIDDLEWARE = [
@@ -124,3 +128,9 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+ANYMAIL = {
+  "MAILTRAP_API_TOKEN": os.getenv("MAILTRAP_API_TOKEN"),
+}
+EMAIL_BACKEND = "anymail.backends.mailtrap.EmailBackend"
+DEFAULT_FROM_EMAIL = "hello@emosdk.tech"

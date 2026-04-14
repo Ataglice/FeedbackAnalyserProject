@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User 
 from django.core.validators import MinValueValidator, MaxValueValidator
+from rest_framework_api_key.models import AbstractAPIKey
 
 class Platform(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="Название платформы")
@@ -32,6 +33,17 @@ class Company(models.Model):
 
     def __str__(self):
         return self.name
+    
+class CompanyAPIKey(AbstractAPIKey):
+    company = models.ForeignKey(
+        Company, 
+        on_delete=models.CASCADE,
+        related_name="api_keys",
+    )
+    
+    class Meta(AbstractAPIKey.Meta):
+        verbose_name = "API ключ компании"
+        verbose_name_plural = "API ключи компаний"
 
 class EmployeeProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')

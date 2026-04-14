@@ -8,6 +8,7 @@ from django.core.paginator import Paginator
 from django.contrib.auth.models import User
 from django.db import transaction
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 
 from users.models import Platform, SentimentAnchor
 from users.models import Feedback, SentimanetAnalyze, EmployeeProfile
@@ -18,6 +19,7 @@ from users.views import get_analyzer
 
 from django.views.decorators.http import require_POST
 import openpyxl
+from django.core.mail import send_mail
 
 @login_required(login_url='/users/login/')
 def dashboard_view(request):
@@ -157,6 +159,9 @@ def feedback_view(request):
 
 @login_required(login_url='/users/login/')
 def config(request):
+    if not (request.user.is_staff or request.user.is_superuser):
+        raise PermissionDenied("У вас нет прав для просмотра этой страницы.")
+
     if not hasattr(request.user, 'profile'):
         return render(request, 'main/config.html', {'page_obj': [], 'form': EmployeeCreationForm()})
 
@@ -345,7 +350,6 @@ def edit_anchor(request, pk):
 def import_anchors(request):
     excel_file = request.FILES.get('excel_file')
     
-    # Базовая валидация
     if not excel_file or not excel_file.name.endswith('.xlsx'):
         messages.error(request, "Ошибка: Пожалуйста, загрузите файл формата .xlsx")
         return redirect('dictionary')
@@ -387,3 +391,22 @@ def import_anchors(request):
         messages.error(request, f"Произошла ошибка при чтении файла: {e}")
 
     return redirect('dictionary')
+
+@login_required(login_url='/users/login/')
+def profile_view(request):
+    user = request.user
+    
+    # Безопасное извлечение данных профиля (избегаем ошибки DoesNotExist)
+    if hasattr(user, 'profile'):
+        company = user.profile.company.name if user.profile.company else "Не указана"
+        phone = user.profile.phone if user.profile.phone else "Не указан"
+    else:
+        company = "Профиль не настроен"
+        phone = "Не указан"
+
+    context = {
+        'company': company,
+        'phone': phone,
+    }
+    
+    return render(request, 'main/profile.html', context)

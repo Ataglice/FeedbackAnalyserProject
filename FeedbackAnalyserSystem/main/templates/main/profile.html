@@ -1,0 +1,77 @@
+{% extends 'main/base.html' %}
+{% load static %} 
+
+{% block title %}Профиль сотрудника{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm border-0 rounded-3">
+                <div class="card-body p-4">
+                    
+                    <div class="text-center mb-4">
+                        <img src="https://ui-avatars.com/api/?name={{ request.user.username }}&background=0D8ABC&color=fff&size=128&rounded=true" 
+                             alt="Аватар" class="mb-3 shadow-sm" width="100" height="100">
+                        
+                        <h4 class="mb-0">
+                            {% if request.user.first_name or request.user.last_name %}
+                                {{ request.user.first_name }} {{ request.user.last_name }}
+                            {% else %}
+                                {{ request.user.username }}
+                            {% endif %}
+                        </h4>
+                        <p class="text-muted">@{{ request.user.username }}</p>
+                    </div>
+
+                    <hr class="bg-light">
+
+                    <div class="mb-4">
+                        <h6 class="text-uppercase text-muted fw-bold mb-3" style="font-size: 0.8rem;">
+                            <i class="bi bi-building me-2"></i>Рабочая информация
+                        </h6>
+                        <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                            <span class="text-muted">Компания:</span>
+                            <span class="fw-medium">{{ company }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                            <span class="text-muted">Роль в системе:</span>
+                            <span class="fw-medium">
+                                {% if request.user.is_superuser %}
+                                    <span class="badge bg-danger">Администратор</span>
+                                {% elif request.user.is_staff %}
+                                    <span class="badge bg-warning text-dark">Менеджер</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Сотрудник</span>
+                                {% endif %}
+                            </span>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6 class="text-uppercase text-muted fw-bold mb-3" style="font-size: 0.8rem;">
+                            <i class="bi bi-person-lines-fill me-2"></i>Контактные данные
+                        </h6>
+                        <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                            <span class="text-muted">Email:</span>
+                            <span class="fw-medium">{{ request.user.email|default:"Не указан" }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                            <span class="text-muted">Телефон:</span>
+                            <span class="fw-medium">{{ phone }}</span>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button class="btn btn-primary" type="button">
+                            Редактировать профиль
+                        </button>
+                        <a href="#" class="btn btn-outline-danger"> Выйти из аккаунта
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

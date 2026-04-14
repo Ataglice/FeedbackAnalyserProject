@@ -10,5 +10,6 @@ urlpatterns = [
     path('config/dictionary/', views.dictionary_view, name='dictionary'),
     path('config/dictionary/delete/<int:pk>/', views.delete_anchor, name='delete_anchor'),
     path('config/dictionary/edit/<int:pk>/', views.edit_anchor, name='edit_anchor'),
-    path('config/dictionary/import/', views.import_anchors, name='import_anchors')
+    path('config/dictionary/import/', views.import_anchors, name='import_anchors'),
+    path('profile/', views.profile_view, name='profile')
 ]

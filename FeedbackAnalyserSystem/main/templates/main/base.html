@@ -42,19 +42,21 @@
                             <span class="d-none d-sm-inline fw-medium">Отчеты SLA</span>
                         </a>
                     </li>
+                    {% if request.user.is_staff or request.user.is_superuser %}
                     <li class="nav-item">
                         <a href="/config/" target="_blank" class="nav-link align-middle px-3 py-2 d-flex align-items-center">
                             <i class="bi bi-gear fs-5 me-3"></i> 
                             <span class="d-none d-sm-inline fw-medium">Настройки (Admin)</span>
                         </a>
                     </li>
+                    {% endif %}
                 </ul>
 
                 <div class="w-100 mt-5 px-3 d-none d-sm-block account-menu">
                     <span class="text-muted" style="font-size: 0.75rem; font-weight: 700; letter-spacing: 1px;">ACCOUNT DETAILS</span>
                     <ul class="nav flex-column mt-3 w-100">
                         <li class="nav-item mb-2">
-                            <a href="#" class="nav-link d-flex align-items-center py-1">
+                            <a href="/profile/" class="nav-link d-flex align-items-center py-1">
                                 <i class="bi bi-person-circle me-3"></i> <span>Profile</span>
                             </a>
                         </li>

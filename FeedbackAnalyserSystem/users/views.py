@@ -2,15 +2,16 @@ from django.shortcuts import render, get_object_or_404, redirect
 from .models import User
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import login, logout
-
+from .permissions import HasCompanyAPIKey
+from .models import CompanyAPIKey
 from rest_framework import generics
 from .models import Feedback, SentimanetAnalyze
 from api.serializers import DataRecordSerializer
 from analyser.AnalyzerPipeline import SentimentAnalyzer
-
+from django.core.exceptions import PermissionDenied
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-
+from users.utils import send_sentiment_alert
 
 '''
 def user(request):
@@ -77,8 +78,20 @@ class DataRecordCreateView(generics.CreateAPIView):
     queryset = Feedback.objects.all()
     serializer_class = DataRecordSerializer
 
+    permission_classes = [HasCompanyAPIKey]
+
     def perform_create(self, serializer):
-        feedback_instance = serializer.save()
+
+        key = self.request.META.get("HTTP_AUTHORIZATION", "").split()[-1]
+        
+        try:
+            # 3. ИДЕНТИФИКАЦИЯ: Находим компанию по этому ключу
+            api_key_obj = CompanyAPIKey.objects.get_from_key(key)
+            company = api_key_obj.company
+        except CompanyAPIKey.DoesNotExist:
+            raise PermissionDenied("Недействительный API ключ")
+        
+        feedback_instance = serializer.save(company=company)
         text_to_analyze = feedback_instance.text
 
         analyzer = get_analyzer()
@@ -92,7 +105,7 @@ class DataRecordCreateView(generics.CreateAPIView):
             neg_val = 0.0
             neu_val = 0.0
             
-            # По умолчанию записываем общий итог (для Embed, так как он не выдает единый индекс в словаре)
+            # По умолчанию записываем общий итог 
             model_specific_value = overall_value 
 
             #? ВЕТВЬ А: Если модель вернула словарь (Embed, VADER)
@@ -139,4 +152,6 @@ class DataRecordCreateView(generics.CreateAPIView):
             negative_val=0.0,
             neutral_val=0.0
         )
+
+        #send_sentiment_alert(feedback_instance, overall_value)
 
