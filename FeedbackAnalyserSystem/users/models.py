@@ -31,6 +31,12 @@ class Company(models.Model):
     phone = models.CharField(max_length=20)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
 
+    users = models.ManyToManyField(
+        User, 
+        through='CompanyMember', 
+        related_name='companies'
+    )
+
     def __str__(self):
         return self.name
     
@@ -47,12 +53,28 @@ class CompanyAPIKey(AbstractAPIKey):
 
 class EmployeeProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='employees')
     phone = models.CharField(max_length=20, null=True, blank=True)
     slug = models.SlugField(default="", null=False)
 
     def __str__(self):
         return f"{self.user.username} - {self.company.name}"
+    
+class CompanyMember(models.Model):
+    ROLE_CHOICES = [
+        ('owner', 'Владелец'),
+        ('admin', 'Администратор'),
+        ('manager', 'Менеджер'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='memberships')
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='members')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='manager')
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'company')
+        verbose_name = "Сотрудник компании"
+        verbose_name_plural = "Сотрудники компаний"
 
 class Feedback(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='feedbacks')

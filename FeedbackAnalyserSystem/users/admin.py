@@ -3,6 +3,7 @@ from .models import Feedback, SentimanetAnalyze
 from .models import Company, EmployeeProfile, Feedback, SentimanetAnalyze, Platform, SentimentAnchor
 from rest_framework_api_key.admin import APIKeyModelAdmin
 from .models import CompanyAPIKey
+from users.models import CompanyMember
 
 
 
@@ -17,6 +18,7 @@ admin.site.register(Company)
 admin.site.register(EmployeeProfile)
 admin.site.register(Platform)
 admin.site.register(SentimentAnchor)
+admin.site.register(CompanyMember)
 
 @admin.register(CompanyAPIKey)
 class CompanyAPIKeyAdmin(APIKeyModelAdmin):

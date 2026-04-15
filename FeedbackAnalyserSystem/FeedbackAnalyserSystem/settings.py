@@ -134,3 +134,18 @@ ANYMAIL = {
 }
 EMAIL_BACKEND = "anymail.backends.mailtrap.EmailBackend"
 DEFAULT_FROM_EMAIL = "hello@emosdk.tech"
+
+
+# Указываем, что брокером сообщений (очередью) будет локальный Redis
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+
+# Указываем, куда сохранять результаты выполнения задач
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+
+# Формат данных (JSON - стандарт)
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+
+# Устанавливаем часовой пояс
+CELERY_TIMEZONE = TIME_ZONE

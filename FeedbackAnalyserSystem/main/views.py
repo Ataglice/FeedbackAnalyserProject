@@ -13,6 +13,7 @@ from django.core.exceptions import PermissionDenied
 from users.models import Platform, SentimentAnchor
 from users.models import Feedback, SentimanetAnalyze, EmployeeProfile
 from users.forms import EmployeeCreationForm, EmployeeEditForm
+from users.models import CompanyMember
 
 from users.forms import SentimentAnchorForm
 from users.views import get_analyzer
@@ -20,11 +21,18 @@ from users.views import get_analyzer
 from django.views.decorators.http import require_POST
 import openpyxl
 from django.core.mail import send_mail
+from users.decorators import require_role
+
+from .utils import get_active_company
+
 
 @login_required(login_url='/users/login/')
 def dashboard_view(request):
-    user_company = request.user.profile.company
-    
+    user_company = get_active_company(request)
+
+    if not user_company:
+        raise PermissionDenied("Вы не состоите ни в одной компании.")
+        
     today = timezone.now().date()
     fourteen_days_ago = today - timedelta(days=14)
     
@@ -105,8 +113,9 @@ def dashboard_view(request):
     return render(request, 'main/dashboard.html', context)
 
 @login_required(login_url='/users/login/')
+@require_role(['owner', 'admin'])
 def feedback_view(request):
-    user_company = request.user.profile.company
+    user_company = get_active_company(request)
 
     all_feedbacks = Feedback.objects.filter(company=user_company)
 
@@ -158,14 +167,16 @@ def feedback_view(request):
     return render(request, 'main/feed.html', context)
 
 @login_required(login_url='/users/login/')
+@require_role(['owner', 'admin'])
 def config(request):
-    if not (request.user.is_staff or request.user.is_superuser):
-        raise PermissionDenied("У вас нет прав для просмотра этой страницы.")
 
     if not hasattr(request.user, 'profile'):
         return render(request, 'main/config.html', {'page_obj': [], 'form': EmployeeCreationForm()})
 
-    user_company = request.user.profile.company
+    user_company = get_active_company(request)
+
+    if not user_company:
+        raise PermissionDenied("Вы не состоите ни в одной компании.")
 
     if request.method == 'POST':
         form = EmployeeCreationForm(request.POST)
@@ -175,15 +186,20 @@ def config(request):
                 
                 EmployeeProfile.objects.create(
                     user=new_user,
-                    company=user_company, 
                     phone=form.cleaned_data.get('phone', ''),
                     slug=new_user.username 
+                )
+
+                CompanyMember.objects.create(
+                    user=new_user,
+                    company=user_company,
+                    role=form.cleaned_data.get('role', 'manager')
                 )
             return redirect('config') 
     else:
         form = EmployeeCreationForm()
 
-    all_users = User.objects.filter(profile__company=user_company)
+    all_users = User.objects.filter(companies=user_company)
 
     search_query = request.GET.get('search', '')
     role_filter = request.GET.get('role', '')
@@ -196,12 +212,11 @@ def config(request):
             Q(email__icontains=search_query) |
             Q(profile__phone__icontains=search_query)
         )
-    if role_filter == 'admin':
-        all_users = all_users.filter(is_superuser=True)
-    elif role_filter == 'manager':
-        all_users = all_users.filter(is_staff=True, is_superuser=False)
-    elif role_filter == 'user':
-        all_users = all_users.filter(is_staff=False, is_superuser=False)
+    if role_filter in ['owner', 'admin', 'manager']:
+        all_users = all_users.filter(
+            memberships__company=user_company, 
+            memberships__role=role_filter
+        )
 
     if status_filter == 'active':
         all_users = all_users.filter(is_active=True)
@@ -224,25 +239,29 @@ def config(request):
     return render(request, 'main/config.html', context)
 
 @login_required(login_url='/users/login/')
+@require_role(['owner', 'admin'])
 def delete_employee(request, user_id):
     if request.method == 'POST':
-        user_company = request.user.profile.company
+        user_company = get_active_company(request)
 
-        user_to_delete = get_object_or_404(User, id=user_id, profile__company=user_company)
-
-        if user_to_delete.id == request.user.id:
+        if user_id == request.user.id:
             return redirect('config')
 
-        user_to_delete.delete()
+        membership = get_object_or_404(CompanyMember, user_id=user_id, company=user_company)
+        membership.delete()
 
     return redirect('config')
 
 
 @login_required(login_url='/users/login/')
+@require_role(['owner', 'admin'])
 def edit_employee(request, user_id):
-    user_company = request.user.profile.company
+    user_company = get_active_company(request)
+
+    if not user_company:
+        raise PermissionDenied("Вы не состоите ни в одной компании.")
     
-    user_to_edit = get_object_or_404(User, id=user_id, profile__company=user_company)
+    user_to_edit = get_object_or_404(User, id=user_id, companies=user_company)
 
     if request.method == 'POST':
         form = EmployeeEditForm(request.POST, instance=user_to_edit)
@@ -395,13 +414,12 @@ def import_anchors(request):
 @login_required(login_url='/users/login/')
 def profile_view(request):
     user = request.user
+    active_comp = get_active_company(request)
+    company = active_comp.name if active_comp else "Не состоит в компаниях"
     
-    # Безопасное извлечение данных профиля (избегаем ошибки DoesNotExist)
     if hasattr(user, 'profile'):
-        company = user.profile.company.name if user.profile.company else "Не указана"
         phone = user.profile.phone if user.profile.phone else "Не указан"
     else:
-        company = "Профиль не настроен"
         phone = "Не указан"
 
     context = {
