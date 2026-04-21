@@ -57,7 +57,7 @@ class EmployeeProfile(models.Model):
     slug = models.SlugField(default="", null=False)
 
     def __str__(self):
-        return f"{self.user.username} - {self.company.name}"
+        return f"Профиль: {self.user.username}"
     
 class CompanyMember(models.Model):
     ROLE_CHOICES = [
@@ -104,6 +104,16 @@ class SentimanetAnalyze(models.Model):
     value = models.FloatField()
     meta_data = models.JSONField(null=True, blank=True)
 
+    is_manual = models.BooleanField(default=False, verbose_name="Ручная правка")
+    
+    edited_by = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='edited_sentiments'
+    )
+
     def __str__(self):
         return f"Analysis ({self.type}) for Feedback ID: {self.feedback_id}"
  
@@ -142,3 +152,86 @@ class SentimentAnchor(models.Model):
                 anchors_dict[anchor.sentiment].append(anchor.text)
                 
         return {k: v for k, v in anchors_dict.items() if v}
+    
+
+class Notification(models.Model):
+    NOTIFICATION_TYPES = (
+        ('INFO', 'Информация'),
+        ('SUCCESS', 'Успех'),
+        ('WARNING', 'Внимание'),
+        ('CRITICAL', 'Критическое'),
+    )
+
+    user = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        related_name='notifications',
+        verbose_name='Пользователь'
+    )
+    
+
+    company = models.ForeignKey(
+        'Company', 
+        on_delete=models.CASCADE, 
+        related_name='notifications',
+        null=True, 
+        blank=True,
+        verbose_name='Компания'
+    )
+    
+
+    type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES, default='INFO', verbose_name='Тип')
+    title = models.CharField(max_length=255, verbose_name='Заголовок')
+    message = models.TextField(verbose_name='Сообщение')
+    
+    link = models.CharField(max_length=255, blank=True, null=True, verbose_name='Ссылка для перехода')
+    
+    is_read = models.BooleanField(default=False, verbose_name='Прочитано')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
+
+    class Meta:
+        ordering = ['-created_at'] 
+        verbose_name = 'Уведомление'
+        verbose_name_plural = 'Уведомления'
+
+    def __str__(self):
+        return f"[{self.get_type_display()}] {self.user.username} - {self.title}"
+    
+
+class NotificationSetting(models.Model):
+    company = models.OneToOneField(
+        'Company', 
+        on_delete=models.CASCADE, 
+        related_name='notification_settings'
+    )
+    
+    is_in_app_enabled = models.BooleanField(default=True, verbose_name="Внутренние уведомления (Колокольчик)")
+    is_telegram_enabled = models.BooleanField(default=False, verbose_name="Уведомления в Telegram")
+    is_email_enabled = models.BooleanField(default=False, verbose_name="Уведомления в Email")
+    
+    critical_threshold = models.FloatField(default=-0.5, verbose_name="Порог критического негатива")
+    
+
+    telegram_bot_token = models.CharField(max_length=255, blank=True, null=True, verbose_name="Токен Telegram бота клиента")
+    telegram_chat_id = models.CharField(max_length=100, blank=True, null=True, verbose_name="ID Telegram чата")
+    
+    custom_emails = models.TextField(
+        blank=True, 
+        null=True, 
+        verbose_name="Дополнительные Email",
+        help_text="Укажите email-адреса через запятую (например: boss@mail.ru, qc@mail.ru)"
+    )
+
+    alert_template = models.TextField(
+        blank=True, 
+        null=True, 
+        verbose_name="Шаблон уведомления",
+        help_text="Доступные переменные: {company}, {platform}, {score}, {text}, {link}"
+    )
+
+    class Meta:
+        verbose_name = "Настройки уведомлений"
+        verbose_name_plural = "Настройки уведомлений"
+
+    def __str__(self):
+        return f"Настройки: {self.company.name}"

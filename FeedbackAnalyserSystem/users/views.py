@@ -11,34 +11,10 @@ from analyser.AnalyzerPipeline import SentimentAnalyzer
 from django.core.exceptions import PermissionDenied
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from users.utils import send_sentiment_alert
 from .tasks import analyze_feedback_task
+from .decorators import require_role
 
-'''
-def user(request):
-    myusers = User.objects.all().values()
-    context = {
-        'myusers': myusers
-    }
-    return render(request, 'users/all_users.html', context)
 
-def details(request, slug):
-    myuser = get_object_or_404(User, slug=slug) 
-    context = {
-        'myuser': myuser 
-    }
-    return render(request, 'users/details.html', context)
-  
-def main(request):
-    return render(request, 'users/main.html')
-
-def testing(request):
-    myusers = User.objects.all().values()
-    context = {
-        'myusers': myusers,
-    }
-    return render(request, 'users/template.html', context)
-'''
 
 def register_view(request):
     if request.method == "POST":
@@ -64,15 +40,6 @@ def logout_view(request):
     if request.method == 'POST':
         logout(request)
         return redirect("login")
-
-nlp_analyzer = None
-
-def get_analyzer():
-    global nlp_analyzer
-    if nlp_analyzer is None:
-        print(">>> Загрузка AI-моделей в память... <<<")
-        nlp_analyzer = SentimentAnalyzer()
-    return nlp_analyzer
 
 
 class DataRecordCreateView(generics.CreateAPIView):

@@ -11,5 +11,7 @@ urlpatterns = [
     path('config/dictionary/delete/<int:pk>/', views.delete_anchor, name='delete_anchor'),
     path('config/dictionary/edit/<int:pk>/', views.edit_anchor, name='edit_anchor'),
     path('config/dictionary/import/', views.import_anchors, name='import_anchors'),
-    path('profile/', views.profile_view, name='profile')
+    path('profile/', views.profile_view, name='profile'),
+    path('feedback/<int:feedback_id>/override/', views.override_sentiment, name='override_sentiment'),
+    path('settings/notifications/', views.notifications_settings_view, name='notifications'),
 ]

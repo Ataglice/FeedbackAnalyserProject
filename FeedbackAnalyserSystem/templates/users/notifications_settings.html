@@ -1,0 +1,116 @@
+{% extends 'main/base.html' %}
+{% load static %}
+
+{% block title %}Настройки уведомлений{% endblock %}
+
+{% block content %}
+<div class="mock-bg">
+    <div class="row gx-4">
+        
+        <div class="col-md-3 admin-sidebar">
+            <a href="{% url 'config'%}" class="admin-nav-item">
+                <i class="bi bi-person-badge"></i>
+                <span>Управление пользователями</span>
+            </a>
+            <a href="{% url 'dictionary' %}" class="admin-nav-item">
+                <i class="bi bi-journal-text"></i>
+                <span>Управление словарем тональности</span>
+            </a>
+            <a href="{% url 'notifications' %}" class="admin-nav-item active">
+                <i class="bi bi-bell"></i>
+                <span>Настройки уведомлений</span>
+            </a>
+        </div>
+
+        <div class="col-md-9">
+            <div class="mock-card" style="padding: 30px;">
+                <div class="d-flex align-items-center mb-4 pb-3" style="border-bottom: 1px solid #e0e0e0;">
+                    <i class="bi bi-bell text-dark me-2" style="font-size: 1.5rem;"></i>
+                    <h4 class="mb-0 text-dark" style="font-weight: 400;">Настройки уведомлений</h4>
+                </div>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-4" role="alert" style="border-radius: 6px;">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="POST" action="{% url 'notifications' %}">
+                    {% csrf_token %}
+
+                    <div class="mb-5">
+                        <h6 class="fw-bold mb-3 text-dark">Базовые параметры</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="d-block text-muted mb-2 fw-medium" style="font-size: 0.85rem;">Каналы доставки</label>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" name="is_in_app_enabled" id="inAppCheck" {% if settings.is_in_app_enabled %}checked{% endif %}>
+                                    <label class="form-check-label text-dark" for="inAppCheck">Колокольчик (In-App)</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" name="is_telegram_enabled" id="telegramCheck" {% if settings.is_telegram_enabled %}checked{% endif %}>
+                                    <label class="form-check-label text-dark" for="telegramCheck">Telegram Bot</label>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" name="is_email_enabled" id="emailCheck" {% if settings.is_email_enabled %}checked{% endif %}>
+                                    <label class="form-check-label text-dark" for="emailCheck">Email рассылка</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="d-block text-muted mb-2 fw-medium" style="font-size: 0.85rem;">Порог чувствительности ИИ</label>
+                                <div class="position-relative">
+                                    <i class="bi bi-thermometer-half position-absolute" style="left: 10px; top: 50%; transform: translateY(-50%); color: #666;"></i>
+                                    <input type="number" step="0.01" min="-1.0" max="1.0" name="critical_threshold" class="mock-input mock-rect w-100" value="{{ settings.critical_threshold|stringformat:'s' }}" style="padding-left: 35px;" required>
+                                </div>
+                                <div class="form-text mt-1" style="font-size: 0.75rem;">Алерт сработает, если оценка ниже этого значения. По умолчанию: <strong>-0.5</strong></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-5 pb-4" style="border-top: 1px solid #f0f0f0; pt-4;">
+                        <h6 class="fw-bold mb-3 text-dark mt-4">Интеграция Telegram</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="d-block text-muted mb-1 fw-medium" style="font-size: 0.85rem;">Токен вашего бота</label>
+                                <input type="text" name="telegram_bot_token" class="mock-input mock-rect w-100" value="{{ settings.telegram_bot_token|default:'' }}" placeholder="Напр: 123456:ABC-DEF...">
+                                <div class="form-text" style="font-size: 0.75rem;">Если пусто — используется системный бот.</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="d-block text-muted mb-1 fw-medium" style="font-size: 0.85rem;">ID чата получателя</label>
+                                <input type="text" name="telegram_chat_id" class="mock-input mock-rect w-100" value="{{ settings.telegram_chat_id|default:'' }}" placeholder="Напр: -100123456789">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-5 pb-4" style="border-top: 1px solid #f0f0f0; pt-4;">
+                        <h6 class="fw-bold mb-3 text-dark mt-4">Дополнительные Email адреса</h6>
+                        <textarea name="custom_emails" class="mock-input mock-rect w-100" rows="2" placeholder="manager@company.com, boss@company.com">{{ settings.custom_emails|default:'' }}</textarea>
+                        <div class="form-text" style="font-size: 0.75rem;">Укажите адреса через запятую. Уведомления также придут всем Владельцам и Админам компании.</div>
+                    </div>
+
+                    <div class="mb-4 pb-4" style="border-top: 1px solid #f0f0f0; pt-4;">
+                        <h6 class="fw-bold mb-3 text-dark mt-4">Шаблон сообщения</h6>
+                        <textarea name="alert_template" class="mock-input mock-rect w-100" rows="4" placeholder="Введите ваш текст шаблона...">{{ settings.alert_template|default:'' }}</textarea>
+                        <div class="p-3 mt-2 bg-light rounded" style="font-size: 0.8rem; border: 1px dashed #ccc;">
+                            <strong>Доступные переменные:</strong><br>
+                            <code>{company}</code> — имя компании, <code>{platform}</code> — площадка (напр. 2ГИС),<br>
+                            <code>{score}</code> — оценка ИИ, <code>{text}</code> — текст отзыва, <code>{link}</code> — ссылка.
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end pt-3">
+                        <button type="submit" class="mock-btn m-0" style="background-color: #1a1a1a; color: white; border: none; padding: 10px 25px; border-radius: 6px;">
+                            <i class="bi bi-save me-2"></i> Сохранить конфигурацию
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock content %}

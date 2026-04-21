@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 from django.utils import timezone
 from datetime import timedelta
 from django.db.models import Avg, Q, Count
@@ -11,13 +12,12 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 
 from users.models import Platform, SentimentAnchor
-from users.models import Feedback, SentimanetAnalyze, EmployeeProfile
+from users.models import Feedback, SentimanetAnalyze, EmployeeProfile, NotificationSetting
 from users.forms import EmployeeCreationForm, EmployeeEditForm
 from users.models import CompanyMember
 
 from users.forms import SentimentAnchorForm
-from users.views import get_analyzer
-
+from users.utils import get_analyzer
 from django.views.decorators.http import require_POST
 import openpyxl
 from django.core.mail import send_mail
@@ -428,3 +428,76 @@ def profile_view(request):
     }
     
     return render(request, 'main/profile.html', context)
+
+@login_required(login_url='/users/login/')
+@require_role(['owner', 'admin', 'manager']) 
+@require_POST
+def override_sentiment(request, feedback_id):
+    active_company = get_active_company(request)
+
+    feedback = get_object_or_404(Feedback, id=feedback_id, company=active_company)
+
+    new_value = request.POST.get('new_value') #ожидаем от -1.0 до 1.0
+
+    if new_value is None:
+        return JsonResponse({'error': 'Не передано значение new_value'}, status=400)
+        
+    try:
+        new_value = float(new_value)
+    except ValueError:
+        return JsonResponse({'error': 'Значение должно быть числом'}, status=400)
+    
+    final_sentiment, created = SentimanetAnalyze.objects.get_or_create(
+        feedback=feedback,
+        type='FINAL',
+        defaults={'value': new_value}
+    )
+
+    # Обновляем метрики в зависимости от выбора
+    final_sentiment.value = new_value
+    final_sentiment.positive_val = 1.0 if new_value > 0 else 0.0
+    final_sentiment.negative_val = -1.0 if new_value < 0 else 0.0 # храним отрицательное
+    final_sentiment.neutral_val = 1.0 if new_value == 0 else 0.0
+    
+    final_sentiment.is_manual = True
+    final_sentiment.edited_by = request.user
+    final_sentiment.save()
+    
+    return JsonResponse({
+        'status': 'success', 
+        'message': 'Оценка успешно изменена',
+        'new_value': new_value
+    })
+
+
+@login_required(login_url='/users/login/')
+@require_role(['owner', 'admin']) 
+def notifications_settings_view(request):
+    active_company = get_active_company(request)
+
+    settings_obj, created = NotificationSetting.objects.get_or_create(company=active_company)
+
+    if request.method == 'POST':
+        settings_obj.is_in_app_enabled = request.POST.get('is_in_app_enabled') == 'on'
+        settings_obj.is_telegram_enabled = request.POST.get('is_telegram_enabled') == 'on'
+        settings_obj.is_email_enabled = request.POST.get('is_email_enabled') == 'on'
+        
+        threshold = request.POST.get('critical_threshold')
+        if threshold:
+            try:
+                settings_obj.critical_threshold = float(threshold)
+            except ValueError:
+                messages.error(request, "Неверный формат числа для порога.")
+                return redirect('notifications')
+        
+        settings_obj.telegram_bot_token = request.POST.get('telegram_bot_token', '')
+        settings_obj.telegram_chat_id = request.POST.get('telegram_chat_id', '')
+        settings_obj.custom_emails = request.POST.get('custom_emails', '')
+        settings_obj.alert_template = request.POST.get('alert_template', '')
+
+        settings_obj.save()
+        
+        messages.success(request, "Конфигурация уведомлений успешно сохранена!")
+        return redirect('notifications')
+
+    return render(request, 'users/notifications_settings.html', {'settings': settings_obj})

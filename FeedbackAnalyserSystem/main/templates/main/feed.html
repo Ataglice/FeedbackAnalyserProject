@@ -61,14 +61,15 @@
             </div>
             
             {% for feedback in page_obj %}
-            <div class="mock-card mb-3" style="padding: 15px;
+            <div class="mock-card mb-3" id="feedback-card-{{ feedback.id }}" style="padding: 15px;
                 {% if feedback.sentiment_value > 0.2 %}
-                    border-left: 4px solid #7bc043; /* Зеленый - Позитив */
+                    border-left: 4px solid #7bc043; 
                 {% elif feedback.sentiment_value < -0.2 %}
-                    border-left: 4px solid #d9534f; /* Красный - Негатив */
+                    border-left: 4px solid #d9534f; 
                 {% else %}
-                    border-left: 4px solid #6c757d; /* Серый - Нейтрально */
+                    border-left: 4px solid #6c757d; 
                 {% endif %}"> 
+                
                 <div class="d-flex justify-content-between align-items-start mb-2"> 
                     <div>
                         <div class="mb-0"> <span class="mock-tags" style="font-weight: 500;">#{{ feedback.category|default:"отзыв" }}</span></div>
@@ -93,9 +94,18 @@
                         <i class="bi bi-person-circle me-2" style="font-size: 0.85rem; color: #666;"></i>
                         <span class="mock-text-sm text-dark fw-bold">{{ feedback.external_id|default:"Аноним" }}</span>
                     </div>
-                    <button class="mock-btn mt-0 mb-0" style="padding: 2px 8px; font-size: 0.75rem;" type="button" data-bs-toggle="collapse" data-bs-target="#replyBox-{{ feedback.id }}" aria-expanded="false" aria-controls="replyBox-{{ feedback.id }}">
-                        <i class="bi bi-reply"></i> Ответить
-                    </button>
+                    
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="btn-group bg-white" style="border: 1px solid #ccc; border-radius: 6px; padding: 2px;">
+                            <button type="button" class="btn btn-sm sentiment-btn border-0" style="padding: 0px 6px; font-size: 0.9rem;" data-id="{{ feedback.id }}" data-value="1.0" data-url="{% url 'override_sentiment' feedback.id %}" title="Сделать позитивным">👍</button>
+                            <button type="button" class="btn btn-sm sentiment-btn border-0" style="padding: 0px 6px; font-size: 0.9rem;" data-id="{{ feedback.id }}" data-value="0.0" data-url="{% url 'override_sentiment' feedback.id %}" title="Сделать нейтральным">😐</button>
+                            <button type="button" class="btn btn-sm sentiment-btn border-0" style="padding: 0px 6px; font-size: 0.9rem;" data-id="{{ feedback.id }}" data-value="-1.0" data-url="{% url 'override_sentiment' feedback.id %}" title="Сделать негативным">👎</button>
+                        </div>
+
+                        <button class="mock-btn mt-0 mb-0" style="padding: 2px 8px; font-size: 0.75rem;" type="button" data-bs-toggle="collapse" data-bs-target="#replyBox-{{ feedback.id }}" aria-expanded="false" aria-controls="replyBox-{{ feedback.id }}">
+                            <i class="bi bi-reply"></i> Ответить
+                        </button>
+                    </div>
                 </div>
 
                 <div class="collapse" id="replyBox-{{ feedback.id }}">
@@ -118,13 +128,14 @@
                         </div>
                     </div>
                 </div>
-            </div>
+                </div>
             {% empty %}
             <div class="mock-card text-center py-5 text-muted">
                 Отзывов пока нет.
             </div>
             {% endfor %}
             </div>
+
 
         <div class="col-lg-4">
             <form method="GET" action="{% url 'feedback_feed' %}">
@@ -218,4 +229,58 @@
 
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const buttons = document.querySelectorAll('.sentiment-btn');
+    
+    buttons.forEach(button => {
+        button.addEventListener('click', function() {
+            const feedbackId = this.dataset.id;
+            const newValue = this.dataset.value;
+            const targetUrl = this.dataset.url;
+            const card = document.getElementById(`feedback-card-${feedbackId}`);
+            
+            // Получаем CSRF токен
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            // Подготавливаем данные
+            const formData = new FormData();
+            formData.append('new_value', newValue);
+
+            // Визуально показываем загрузку
+            card.style.opacity = '0.5';
+
+            // Отправляем запрос на сервер
+            fetch(targetUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                card.style.opacity = '1'; 
+                
+                if (data.status === 'success') {
+                    let newColor = '#6c757d'; 
+                    if (newValue === '1.0') newColor = '#7bc043'; 
+                    if (newValue === '-1.0') newColor = '#d9534f'; 
+                    
+                    card.style.borderLeft = `4px solid ${newColor}`;
+                } else {
+                    alert('Ошибка: ' + data.error);
+                }
+            })
+            .catch(error => {
+                card.style.opacity = '1';
+                console.error('Ошибка сервера:', error);
+                alert('Произошла ошибка при соединении с сервером.');
+            });
+        });
+    });
+});
+</script>
+
 {% endblock content %}
