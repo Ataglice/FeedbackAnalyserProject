@@ -14,4 +14,8 @@ urlpatterns = [
     path('profile/', views.profile_view, name='profile'),
     path('feedback/<int:feedback_id>/override/', views.override_sentiment, name='override_sentiment'),
     path('settings/notifications/', views.notifications_settings_view, name='notifications'),
+    path('feedback/export/', views.export_feedback_excel, name='export_feedbacks'),
+    path('select-workspace/', views.select_company_view, name='select_company'),
+    path('set-workspace/<int:company_id>/', views.set_active_company, name='set_active_company'),
+    path('settings/permissions/', views.manage_permissions_view, name='manage_permissions'),
 ]

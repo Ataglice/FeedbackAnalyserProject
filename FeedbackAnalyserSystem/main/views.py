@@ -15,7 +15,7 @@ from users.models import Platform, SentimentAnchor
 from users.models import Feedback, SentimanetAnalyze, EmployeeProfile, NotificationSetting
 from users.forms import EmployeeCreationForm, EmployeeEditForm
 from users.models import CompanyMember
-
+from django.http import HttpResponse
 from users.forms import SentimentAnchorForm
 from users.utils import get_analyzer
 from django.views.decorators.http import require_POST
@@ -113,7 +113,7 @@ def dashboard_view(request):
     return render(request, 'main/dashboard.html', context)
 
 @login_required(login_url='/users/login/')
-@require_role(['owner', 'admin'])
+@require_role(['owner', 'admin', 'manager'])
 def feedback_view(request):
     user_company = get_active_company(request)
 
@@ -415,7 +415,13 @@ def import_anchors(request):
 def profile_view(request):
     user = request.user
     active_comp = get_active_company(request)
-    company = active_comp.name if active_comp else "Не состоит в компаниях"
+    
+    has_any_company = CompanyMember.objects.filter(user=user).exists()
+    
+    if active_comp:
+        company_label = active_comp.name
+    else:
+        company_label = "Компания не выбрана"
     
     if hasattr(user, 'profile'):
         phone = user.profile.phone if user.profile.phone else "Не указан"
@@ -423,8 +429,9 @@ def profile_view(request):
         phone = "Не указан"
 
     context = {
-        'company': company,
+        'company': company_label,
         'phone': phone,
+        'is_workspace_selection': active_comp is None or not has_any_company,
     }
     
     return render(request, 'main/profile.html', context)
@@ -501,3 +508,135 @@ def notifications_settings_view(request):
         return redirect('notifications')
 
     return render(request, 'users/notifications_settings.html', {'settings': settings_obj})
+
+@login_required(login_url='/users/login/')
+def export_feedback_excel(request):
+    active_company = get_active_company(request)
+    feedbacks = Feedback.objects.filter(company=active_company).select_related('platform')
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Отзывы"
+
+    headers = ['Платформа', 'Оценка', 'Текст отзыва', 'Внешний ID']
+    ws.append(headers)
+
+    for fb in feedbacks:
+        platform_name = fb.platform.name if fb.platform else "Неизвестно"
+        
+        ws.append([
+            platform_name,
+            fb.rating,
+            fb.text,
+            fb.external_id
+        ])
+
+    ws.column_dimensions['D'].width = 60
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="Feedbacks_Export.xlsx"'
+    
+    wb.save(response)
+
+    return response
+
+
+@login_required(login_url='/users/login/')
+def select_company_view(request):
+    user_memberships = CompanyMember.objects.filter(user=request.user).select_related('company')
+
+    if not user_memberships.exists():
+        return render(request, 'users/no_companies.html', {'is_workspace_selection': True})
+
+    if user_memberships.count() == 1:
+        company_id = user_memberships.first().company.id
+        request.session['active_company_id'] = company_id
+        return redirect('dashboard')
+
+    return render(request, 'users/select_company.html', {
+        'memberships': user_memberships,
+        'is_workspace_selection': True 
+    })
+
+@login_required(login_url='/users/login/')
+def set_active_company(request, company_id):
+    has_access = CompanyMember.objects.filter(user=request.user, company_id=company_id).exists()
+    
+    if has_access:
+        # ЗАПИСЫВАЕМ В СЕССИЮ! Это самое главное.
+        request.session['active_company_id'] = company_id
+        return redirect('dashboard')
+    else:
+        messages.error(request, "У вас нет доступа к этой системе.")
+        return redirect('select_company')
+    
+@login_required(login_url='/users/login/')
+@require_role(['owner']) 
+def manage_permissions_view(request):
+    active_company = get_active_company(request)
+    
+    available_roles = [
+        ('owner', 'Владелец'),
+        ('admin', 'Администратор'),
+        ('manager', 'Менеджер'),
+    ]
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'update_role':
+            member_id = request.POST.get('member_id')
+            new_role = request.POST.get('new_role')
+
+            try:
+                member_to_update = CompanyMember.objects.get(id=member_id, company=active_company)
+                
+                if member_to_update.user == request.user and new_role != 'owner':
+                    owners_count = CompanyMember.objects.filter(company=active_company, role='owner').count()
+                    if owners_count <= 1:
+                        messages.error(request, "Ошибка: Невозможно понизить единственного владельца.")
+                        return redirect('manage_permissions')
+
+                member_to_update.role = new_role
+                member_to_update.save()
+                messages.success(request, f"Роль {member_to_update.user.username} обновлена.")
+                
+            except CompanyMember.DoesNotExist:
+                messages.error(request, "Сотрудник не найден.")
+
+        elif action == 'add_user':
+            new_user_id = request.POST.get('new_user_id')
+            new_role = request.POST.get('new_role', 'manager')
+
+            try:
+                user_to_add = User.objects.get(id=new_user_id)
+                if CompanyMember.objects.filter(user=user_to_add, company=active_company).exists():
+                    messages.warning(request, "Данный пользователь уже состоит в компании.")
+                else:
+                    CompanyMember.objects.create(user=user_to_add, company=active_company, role=new_role)
+                    messages.success(request, f"Пользователь {user_to_add.username} добавлен в компанию.")
+            except User.DoesNotExist:
+                messages.error(request, "Ошибка: Пользователь не найден в системе.")
+
+        return redirect('manage_permissions')
+
+    members = CompanyMember.objects.filter(company=active_company).select_related('user')
+    
+    search_query = request.GET.get('search_user', '').strip()
+    found_users = []
+    
+    if search_query:
+        existing_user_ids = members.values_list('user_id', flat=True)
+        found_users = User.objects.filter(
+            Q(username__icontains=search_query) | Q(email__icontains=search_query)
+        ).exclude(id__in=existing_user_ids)[:5]
+
+    context = {
+        'members': members,
+        'available_roles': available_roles,
+        'search_query': search_query,
+        'found_users': found_users,
+    }
+    return render(request, 'users/manage_permissions.html', context)

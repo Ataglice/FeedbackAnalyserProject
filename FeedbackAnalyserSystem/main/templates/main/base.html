@@ -23,6 +23,7 @@
                     <span class="fs-5 d-none d-sm-inline fw-bold">Placeholder</span>
                 </a>
                 
+                {% if not is_workspace_selection %}
                 <ul class="nav nav-pills flex-column mb-sm-auto mb-0 w-100 sidebar-menu px-2" id="menu">
                     <li class="nav-item">
                         <a href="/main" class="nav-link align-middle px-3 py-2 active d-flex align-items-center">
@@ -42,15 +43,16 @@
                             <span class="d-none d-sm-inline fw-medium">Отчеты SLA</span>
                         </a>
                     </li>
-                    {% if request.user.is_staff or request.user.is_superuser %}
+                    {% if is_company_admin %}
                     <li class="nav-item">
-                        <a href="/config/" target="_blank" class="nav-link align-middle px-3 py-2 d-flex align-items-center">
+                        <a href="{% url 'config' %}" class="nav-link align-middle px-3 py-2 d-flex align-items-center">
                             <i class="bi bi-gear fs-5 me-3"></i> 
                             <span class="d-none d-sm-inline fw-medium">Настройки (Admin)</span>
                         </a>
                     </li>
                     {% endif %}
                 </ul>
+                {% endif %}
 
                 <div class="w-100 mt-5 px-3 d-none d-sm-block account-menu">
                     <span class="text-muted" style="font-size: 0.75rem; font-weight: 700; letter-spacing: 1px;">ACCOUNT DETAILS</span>
@@ -60,6 +62,13 @@
                                 <i class="bi bi-person-circle me-3"></i> <span>Profile</span>
                             </a>
                         </li>
+                        
+                        <li class="nav-item mb-2">
+                            <a href="{% url 'select_company' %}" class="nav-link d-flex align-items-center py-1">
+                                <i class="bi bi-arrow-left-right me-3"></i> <span>Сменить компанию</span>
+                            </a>
+                        </li>
+
                         <li class="nav-item mb-2">
                             <a href="#" class="nav-link d-flex align-items-center py-1">
                                 <i class="bi bi-sliders me-3"></i> <span>Settings</span>

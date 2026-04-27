@@ -1,0 +1,141 @@
+{% extends 'main/base.html' %}
+{% load static %}
+
+{% block title %}Управление правами{% endblock %}
+
+{% block content %}
+<div class="mock-bg">
+    <div class="row gx-4">
+        
+        <div class="col-md-3 admin-sidebar">
+            <a href="{% url 'config'%}" class="admin-nav-item">
+                <i class="bi bi-person-badge"></i>
+                <span>Управление пользователями</span>
+            </a>
+            <a href="{% url 'dictionary' %}" class="admin-nav-item">
+                <i class="bi bi-journal-text"></i>
+                <span>Словарь тональности</span>
+            </a>
+            <a href="{% url 'notifications' %}" class="admin-nav-item">
+                <i class="bi bi-bell"></i>
+                <span>Настройки уведомлений</span>
+            </a>
+            <a href="{% url 'manage_permissions' %}" class="admin-nav-item active">
+                <i class="bi bi-shield-lock"></i>
+                <span>Управление правами</span>
+            </a>
+        </div>
+
+        <div class="col-md-9">
+            <div class="mock-card" style="padding: 30px;">
+                <div class="d-flex align-items-center mb-4 pb-3" style="border-bottom: 1px solid #e0e0e0;">
+                    <i class="bi bi-people text-dark me-2" style="font-size: 1.5rem;"></i>
+                    <h4 class="mb-0 text-dark" style="font-weight: 400;">Управление составом компании</h4>
+                </div>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <div class="mb-5 pb-4" style="border-bottom: 1px solid #e0e0e0;">
+                    <h6 class="fw-bold mb-3 text-dark">Добавить сотрудника</h6>
+                    
+                    <form method="GET" action="{% url 'manage_permissions' %}" class="d-flex mb-3">
+                        <input type="text" name="search_user" class="mock-input mock-rect w-100 me-2" placeholder="Поиск по email или имени пользователя (username)..." value="{{ search_query }}">
+                        <button type="submit" class="btn btn-dark px-4" style="border-radius: 6px;">Найти</button>
+                        {% if search_query %}
+                            <a href="{% url 'manage_permissions' %}" class="btn btn-outline-secondary ms-2" style="border-radius: 6px;">Сбросить</a>
+                        {% endif %}
+                    </form>
+
+                    {% if found_users %}
+                        <div class="table-responsive border rounded">
+                            <table class="table align-middle m-0">
+                                <tbody>
+                                    {% for user in found_users %}
+                                    <tr>
+                                        <td class="ps-3">
+                                            <strong>{{ user.username }}</strong>
+                                            <div class="text-muted" style="font-size: 0.85rem;">{{ user.email|default:"Email не указан" }}</div>
+                                        </td>
+                                        <td class="text-end pe-3">
+                                            <form method="POST" action="{% url 'manage_permissions' %}" class="d-flex justify-content-end align-items-center m-0">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="add_user">
+                                                <input type="hidden" name="new_user_id" value="{{ user.id }}">
+                                                
+                                                <select name="new_role" class="form-select form-select-sm me-2" style="width: 150px;">
+                                                    {% for role_code, role_name in available_roles %}
+                                                        <option value="{{ role_code }}">{{ role_name }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                                
+                                                <button type="submit" class="btn btn-sm btn-dark">Добавить</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% elif search_query %}
+                        <div class="text-muted" style="font-size: 0.9rem;">Пользователи не найдены или они уже состоят в вашей компании.</div>
+                    {% endif %}
+                </div>
+
+                <h6 class="fw-bold mb-3 text-dark">Действующие сотрудники</h6>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Пользователь</th>
+                                <th>Email</th>
+                                <th>Права доступа</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for member in members %}
+                            <tr>
+                                <td>
+                                    <div class="fw-bold">{{ member.user.username }}</div>
+                                    {% if member.user == request.user %}
+                                        <span class="badge bg-secondary" style="font-size: 0.7rem;">Это вы</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-muted">{{ member.user.email|default:"Нет email" }}</td>
+                                
+                                <td>
+                                    <form method="POST" action="{% url 'manage_permissions' %}" class="d-flex align-items-center m-0">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="update_role">
+                                        <input type="hidden" name="member_id" value="{{ member.id }}">
+                                        
+                                        <select name="new_role" class="form-select form-select-sm me-2" style="width: 150px;">
+                                            {% for role_code, role_name in available_roles %}
+                                                <option value="{{ role_code }}" {% if member.role == role_code %}selected{% endif %}>
+                                                    {{ role_name }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                        
+                                        <button type="submit" class="btn btn-sm btn-outline-dark">
+                                            Сохранить
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

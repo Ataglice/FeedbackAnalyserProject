@@ -1,13 +1,19 @@
+from users.models import Company, CompanyMember
+
 def get_active_company(request):
-    active_company_id = request.session.get('active_company_id')
+    company_id = request.session.get('active_company_id')
     
-    if active_company_id:
-        company = request.user.companies.filter(id=active_company_id).first()
-        if company:
-            return company
+    if company_id:
+        try:
+            return Company.objects.get(id=company_id)
+        except Company.DoesNotExist:
+            pass
             
-    first_company = request.user.companies.first()
-    if first_company:
-        request.session['active_company_id'] = first_company.id
+    # Фолбэк: если в сессии ничего нет (например, юзер зашел по прямой ссылке в дашборд), 
+    # берем его первую попавшуюся компанию
+    first_membership = CompanyMember.objects.filter(user=request.user).first()
+    if first_membership:
+        request.session['active_company_id'] = first_membership.company.id
+        return first_membership.company
         
-    return first_company
+    return None
