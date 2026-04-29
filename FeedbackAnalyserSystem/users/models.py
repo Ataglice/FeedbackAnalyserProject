@@ -87,6 +87,7 @@ class Feedback(models.Model):
         null=True, 
         blank=True
     )
+    source_url = models.URLField(max_length=500, null=True, blank=True, verbose_name="Ссылка на источник")
     created_at = models.DateTimeField(auto_now_add=True)
     send_time = models.DateTimeField(null=True, blank=True)
     meta_data = models.JSONField(null=True, blank=True)

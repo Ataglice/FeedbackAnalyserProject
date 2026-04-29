@@ -21,16 +21,11 @@
                 <i class="bi bi-bell"></i>
                 <span>Настройки уведомлений</span>
             </a>
-            <a href="{% url 'manage_permissions' %}" class="admin-nav-item active">
-                <i class="bi bi-shield-lock"></i>
-                <span>Управление правами</span>
-            </a>
         </div>
 
         <div class="col-md-9">
             <div class="admin-table-container">
                 <h4 class="mb-4">User management</h4>
-                <!-- сортировка  -->
                 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
                     <form method="GET" action="{% url 'config' %}" class="d-flex gap-2 align-items-center m-0">
                         <div class="position-relative">
@@ -60,6 +55,7 @@
                     
                     <div class="d-flex gap-2">
                         <button class="btn-export">export</button>
+                        <button class="btn-add-user" style="background-color: #6c757d;" data-bs-toggle="modal" data-bs-target="#searchUserModal">Найти в системе</button>
                         <button class="btn-add-user" data-bs-toggle="modal" data-bs-target="#addUserModal">+ add user</button>
                     </div>
                 </div>
@@ -86,13 +82,22 @@
                             <td>{{ app_user.profile.phone|default:"-" }}</td>
                             
                             <td>
-                                {% if app_user.is_superuser %}
-                                    <span class="badge bg-danger">Администратор</span>
-                                {% elif app_user.is_staff %}
-                                    <span class="badge bg-warning text-dark">Менеджер</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">Пользователь</span>
-                                {% endif %}
+                                <form method="POST" action="" class="m-0">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="update_role">
+                                    <input type="hidden" name="user_id" value="{{ app_user.id }}">
+                                    
+                                    <select name="new_role" class="form-select form-select-sm border-0 bg-light" onchange="this.form.submit()">
+                                        {% for role_val, role_name in available_roles %}
+                                            <option value="{{ role_val }}" 
+                                                {% for membership in app_user.memberships.all %}
+                                                    {% if membership.role == role_val %}selected{% endif %}
+                                                {% endfor %}>
+                                                {{ role_name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </form>
                             </td>
                             <td>
                                 {% if app_user.is_active %}
@@ -107,8 +112,6 @@
                                 <a href="{% url 'edit_employee' app_user.id %}" class="text-dark text-decoration-none">
                                     <i class="bi bi-wrench-adjustable me-3 cursor-pointer" title="Редактировать"></i>
                                 </a>
-
-
                                 
                                 <form method="POST" action="{% url 'delete_employee' app_user.id %}" class="m-0 p-0">
                                     {% csrf_token %}
@@ -170,6 +173,7 @@
             <div class="modal-body">
                 <form method="POST" action="">
                     {% csrf_token %}
+                    <input type="hidden" name="action" value="create_user">
                     
                     {% if form.non_field_errors %}
                         <div class="alert alert-danger p-2 mb-3" style="font-size: 0.85rem;">
@@ -223,4 +227,61 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="searchUserModal" tabindex="-1" aria-labelledby="searchUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Добавление существующего пользователя</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="GET" action="{% url 'config' %}" class="d-flex gap-2 mb-4">
+                    <input type="text" name="search_user" value="{{ search_sys_query }}" class="form-control" placeholder="Поиск по логину или email..." required>
+                    <button type="submit" class="btn btn-dark">Найти</button>
+                </form>
+
+                {% if found_users %}
+                    <div class="list-group">
+                        {% for f_user in found_users %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ f_user.username }}</strong>
+                                    <div class="text-muted mock-text-sm">{{ f_user.email }}</div>
+                                </div>
+                                <form method="POST" action="" class="m-0 d-flex gap-2 align-items-center">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="add_user">
+                                    <input type="hidden" name="new_user_id" value="{{ f_user.id }}">
+                                    
+                                    <select name="new_role" class="form-select form-select-sm" style="width: 150px;">
+                                        {% for role_val, role_name in available_roles %}
+                                            <option value="{{ role_val }}">{{ role_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    
+                                    <button type="submit" class="btn btn-sm btn-success">Пригласить</button>
+                                </form>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% elif search_sys_query %}
+                    <div class="alert alert-warning">Пользователи не найдены или они уже состоят в компании.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if search_sys_query or found_users %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var myModal = new bootstrap.Modal(document.getElementById('searchUserModal'), {
+            keyboard: false
+        });
+        myModal.show();
+    });
+</script>
+{% endif %}
+
 {% endblock content %}

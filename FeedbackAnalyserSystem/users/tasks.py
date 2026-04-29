@@ -83,7 +83,7 @@ def analyze_feedback_task(feedback_id):
     if overall_value <= threshold:
         # Базовые переменные для шаблона
         platform_name = feedback.platform.name if feedback.platform else 'Неизвестно'
-        feedback_link = f"http://127.0.0.1:8000/feed/?search_query={feedback.external_id}"
+        feedback_link = f"http://127.0.0.1:8000/feedback_feed/?search_query={feedback.external_id}"
         safe_text = html.escape(feedback.text)
         
         # Генерация сообщения на основе шаблона (или дефолтного)

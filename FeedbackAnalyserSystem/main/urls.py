@@ -18,4 +18,6 @@ urlpatterns = [
     path('select-workspace/', views.select_company_view, name='select_company'),
     path('set-workspace/<int:company_id>/', views.set_active_company, name='set_active_company'),
     path('settings/permissions/', views.manage_permissions_view, name='manage_permissions'),
+    path('reports/', views.reports_view, name='reports'),
+    path('notifications/mark-read/', views.mark_notifications_read, name='mark_notifications_read'),
 ]

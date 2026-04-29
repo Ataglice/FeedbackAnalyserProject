@@ -89,11 +89,13 @@ class ExternalIntegrationView(APIView):
         author = request.data.get('author_name', 'Аноним')
         external_id = request.data.get('external_id')
         platform_name = request.data.get('platform', 'WordPress Site')
+        rating = request.data.get('rating')
+        review_link = request.data.get('link')
+        category = request.data.get('category')
 
         if not text:
             return Response({"error": "Field 'text' is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 3. Поиск платформы БЕЗ создания
         try:
             platform_obj = Platform.objects.get(name=platform_name)
         except Platform.DoesNotExist:
@@ -102,13 +104,15 @@ class ExternalIntegrationView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # 4. Сохранение отзыва (имя автора передается в JSON-поле meta_data)
         new_feedback = Feedback.objects.create(
             company=target_company,
             text=text,
             external_id=external_id,
             platform=platform_obj,
-            meta_data={"author_name": author}
+            rating=rating,
+            category=category,
+            source_url=review_link, 
+            meta_data={"author_name": author} 
         )
 
         analyze_feedback_task.delay(new_feedback.id)
@@ -118,3 +122,4 @@ class ExternalIntegrationView(APIView):
             "message": "Feedback accepted",
             "feedback_id": new_feedback.id
         }, status=status.HTTP_201_CREATED)
+

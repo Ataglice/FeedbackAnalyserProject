@@ -1,0 +1,134 @@
+{% extends "main/base.html" %}
+{% load static %}
+
+{% block title %} Отчеты и аналитика {% endblock %}
+
+{% block content %}
+<div class="container-fluid mock-bg">
+    <h2 class="fw-bold mb-4">Аналитика отзывов</h2>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="mock-card p-4 text-center border-top border-4 border-primary">
+                <div class="text-muted mb-2">Всего отзывов</div>
+                <h3 class="fw-bold mb-0">{{ total_feedbacks }}</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="mock-card p-4 text-center border-top border-4 border-warning">
+                <div class="text-muted mb-2">Средний рейтинг</div>
+                <h3 class="fw-bold mb-0">
+                    <i class="bi bi-star-fill text-warning" style="font-size: 1.2rem;"></i> 
+                    {{ avg_rating }}
+                </h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="mock-card p-4 text-center border-top border-4 border-info">
+                <div class="text-muted mb-2">Средний индекс тональности (-1 до 1)</div>
+                <h3 class="fw-bold mb-0">{{ avg_sentiment }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="mock-card p-4 h-100">
+                <h5 class="mb-4">Распределение тональности</h5>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Позитивные ({{ positive_count }})</span>
+                    </div>
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: {% widthratio positive_count total_feedbacks 100 %}%"></div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Нейтральные ({{ neutral_count }})</span>
+                    </div>
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar bg-secondary" role="progressbar" style="width: {% widthratio neutral_count total_feedbacks 100 %}%"></div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Негативные ({{ negative_count }})</span>
+                    </div>
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar bg-danger" role="progressbar" style="width: {% widthratio negative_count total_feedbacks 100 %}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="mock-card p-4 h-100">
+                <h5 class="mb-4">Источники отзывов</h5>
+                <ul class="list-group list-group-flush">
+                    {% for platform in platform_stats %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            {{ platform.platform__name|default:"Неизвестный источник" }}
+                            <span class="badge bg-dark rounded-pill">{{ platform.count }}</span>
+                        </li>
+                    {% empty %}
+                        <li class="list-group-item text-muted px-0">Нет данных по платформам</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="mock-card p-4">
+                <h5 class="mb-4">Аналитика по категориям товаров/услуг</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Категория</th>
+                                <th>Количество отзывов</th>
+                                <th>Средняя тональность (-1 до 1)</th>
+                                <th>Индикатор</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stat in category_stats %}
+                            <tr>
+                                <td>
+                                    <span class="mock-tags" style="font-weight: 500;">
+                                        {{ stat.category|default:"Без категории" }}
+                                    </span>
+                                </td>
+                                <td>{{ stat.count }}</td>
+                                <td>
+                                    <span class="fw-bold">
+                                        {{ stat.avg_sentiment|default:"0"|floatformat:2 }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if stat.avg_sentiment > 0.2 %}
+                                        <span class="badge bg-success">Позитив</span>
+                                    {% elif stat.avg_sentiment < -0.2 %}
+                                        <span class="badge bg-danger">Негатив</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Нейтрально</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-3">Нет данных по категориям</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> {% endblock content %}

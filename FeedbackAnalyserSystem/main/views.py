@@ -24,6 +24,7 @@ from django.core.mail import send_mail
 from users.decorators import require_role
 
 from .utils import get_active_company
+from users.models import Notification
 
 
 @login_required(login_url='/users/login/')
@@ -137,7 +138,10 @@ def feedback_view(request):
     if selected_tag:
         all_feedbacks = all_feedbacks.filter(category__icontains=selected_tag)
     if selected_search:
-        all_feedbacks = all_feedbacks.filter(text__icontains=selected_search)
+        all_feedbacks = all_feedbacks.filter(
+            Q(text__icontains=selected_search) | 
+            Q(external_id__icontains=selected_search)
+        )
     if selected_rating and selected_rating.isdigit():
         all_feedbacks = all_feedbacks.filter(rating__gte=float(selected_rating))
 
@@ -169,38 +173,94 @@ def feedback_view(request):
 @login_required(login_url='/users/login/')
 @require_role(['owner', 'admin'])
 def config(request):
-
     if not hasattr(request.user, 'profile'):
         return render(request, 'main/config.html', {'page_obj': [], 'form': EmployeeCreationForm()})
 
     user_company = get_active_company(request)
-
     if not user_company:
         raise PermissionDenied("Вы не состоите ни в одной компании.")
 
-    if request.method == 'POST':
-        form = EmployeeCreationForm(request.POST)
-        if form.is_valid():
-            with transaction.atomic():
-                new_user = form.save()
-                
-                EmployeeProfile.objects.create(
-                    user=new_user,
-                    phone=form.cleaned_data.get('phone', ''),
-                    slug=new_user.username 
-                )
+    available_roles = [
+        ('owner', 'Владелец'),
+        ('admin', 'Администратор'),
+        ('manager', 'Менеджер'),
+    ]
 
-                CompanyMember.objects.create(
-                    user=new_user,
-                    company=user_company,
-                    role=form.cleaned_data.get('role', 'manager')
-                )
-            return redirect('config') 
-    else:
+    # Обработка POST-запросов (маршрутизация по параметру action)
+    if request.method == 'POST':
+        action = request.POST.get('action', 'create_user')
+
+        # 1. Создание нового пользователя
+        if action == 'create_user':
+            form = EmployeeCreationForm(request.POST)
+            if form.is_valid():
+                with transaction.atomic():
+                    new_user = form.save()
+                    EmployeeProfile.objects.create(
+                        user=new_user,
+                        phone=form.cleaned_data.get('phone', ''),
+                        slug=new_user.username 
+                    )
+                    CompanyMember.objects.create(
+                        user=new_user,
+                        company=user_company,
+                        role=form.cleaned_data.get('role', 'manager')
+                    )
+                messages.success(request, "Новый сотрудник успешно создан.")
+                return redirect('config')
+        
+        # 2. Обновление роли существующего сотрудника
+        elif action == 'update_role':
+            current_member = CompanyMember.objects.get(user=request.user, company=user_company)
+            if current_member.role != 'owner':
+                messages.error(request, "Доступ запрещен. Только владелец может изменять роли.")
+                return redirect('config')
+
+            user_id = request.POST.get('user_id') 
+            new_role = request.POST.get('new_role')
+
+            try:
+                member_to_update = CompanyMember.objects.get(user_id=user_id, company=user_company)
+                
+                if member_to_update.user == request.user and new_role != 'owner':
+                    owners_count = CompanyMember.objects.filter(company=user_company, role='owner').count()
+                    if owners_count <= 1:
+                        messages.error(request, "Ошибка: Невозможно понизить единственного владельца.")
+                        return redirect('config')
+
+                member_to_update.role = new_role
+                member_to_update.save()
+                messages.success(request, f"Роль {member_to_update.user.username} обновлена.")
+                
+            except CompanyMember.DoesNotExist:
+                messages.error(request, "Сотрудник не найден.")
+                
+            return redirect('config')
+
+        # 3. Добавление существующего системного пользователя в компанию
+        elif action == 'add_user':
+            new_user_id = request.POST.get('new_user_id')
+            new_role = request.POST.get('new_role', 'manager')
+
+            try:
+                user_to_add = User.objects.get(id=new_user_id)
+                if CompanyMember.objects.filter(user=user_to_add, company=user_company).exists():
+                    messages.warning(request, "Данный пользователь уже состоит в компании.")
+                else:
+                    CompanyMember.objects.create(user=user_to_add, company=user_company, role=new_role)
+                    messages.success(request, f"Пользователь {user_to_add.username} добавлен в компанию.")
+            except User.DoesNotExist:
+                messages.error(request, "Ошибка: Пользователь не найден в системе.")
+            return redirect('config')
+
+    # Инициализация формы, если POST для 'create_user' был невалиден или это GET-запрос
+    if request.method == 'GET' or (request.method == 'POST' and request.POST.get('action') != 'create_user'):
         form = EmployeeCreationForm()
 
+    # --- Обработка GET-запроса (Фильтрация, сортировка, поиск) ---
     all_users = User.objects.filter(companies=user_company)
 
+    # Фильтры для текущих сотрудников
     search_query = request.GET.get('search', '')
     role_filter = request.GET.get('role', '')
     status_filter = request.GET.get('status', '')
@@ -232,9 +292,22 @@ def config(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
+    # Логика поиска системных пользователей (не состоящих в компании)
+    search_sys_query = request.GET.get('search_user', '').strip()
+    found_users = []
+    
+    if search_sys_query:
+        existing_user_ids = all_users.values_list('id', flat=True)
+        found_users = User.objects.filter(
+            Q(username__icontains=search_sys_query) | Q(email__icontains=search_sys_query)
+        ).exclude(id__in=existing_user_ids)[:5]
+
     context = {
         'page_obj': page_obj,
-        'form': form 
+        'form': form,
+        'available_roles': available_roles,
+        'search_sys_query': search_sys_query,
+        'found_users': found_users,
     }
     return render(request, 'main/config.html', context)
 
@@ -640,3 +713,66 @@ def manage_permissions_view(request):
         'found_users': found_users,
     }
     return render(request, 'users/manage_permissions.html', context)
+
+
+@login_required(login_url='/users/login/')
+@require_role(['owner', 'admin', 'manager'])
+def reports_view(request):
+    active_company = get_active_company(request)
+
+    # 1. Базовый QuerySet для компании
+    feedbacks = Feedback.objects.filter(company=active_company)
+    analyses = SentimanetAnalyze.objects.filter(feedback__company=active_company)
+
+    # 2. Общие показатели
+    total_feedbacks = feedbacks.count()
+    avg_rating = feedbacks.aggregate(Avg('rating'))['rating__avg'] or 0.0
+    avg_sentiment = analyses.aggregate(Avg('value'))['value__avg'] or 0.0
+
+    # 3. Распределение по тональности (используем пороги: >0.2 позитив, <-0.2 негатив)
+    final_analyses = analyses.filter(type='FINAL')
+
+    positive_count = final_analyses.filter(value__gt=0.2).count()
+    negative_count = final_analyses.filter(value__lt=-0.2).count()
+    neutral_count = final_analyses.filter(value__range=(-0.2, 0.2)).count()
+
+    # 4. Статистика по источникам (Платформы)
+    platform_stats = feedbacks.values('platform__name') \
+        .annotate(count=Count('id')) \
+        .order_by('-count')
+    
+    category_stats = feedbacks.values('category') \
+        .annotate(
+            count=Count('id', distinct=True),
+            avg_sentiment=Avg('analyses__value')
+        ) \
+        .order_by('-count')
+
+    # 5. Временной ряд (последние 30 дней)
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    daily_stats = feedbacks.filter(created_at__gte=thirty_days_ago) \
+        .annotate(date=TruncDate('created_at')) \
+        .values('date') \
+        .annotate(count=Count('id')) \
+        .order_by('date')
+
+    context = {
+        'total_feedbacks': total_feedbacks,
+        'avg_rating': round(avg_rating, 2),
+        'avg_sentiment': round(avg_sentiment, 2),
+        'positive_count': positive_count,
+        'negative_count': negative_count,
+        'neutral_count': neutral_count,
+        'platform_stats': platform_stats,
+        'category_stats': category_stats,
+        'daily_stats': list(daily_stats),
+    }
+    
+    return render(request, 'main/reports.html', context)
+
+@login_required(login_url='/users/login/')
+def mark_notifications_read(request):
+    if request.method == 'POST':
+        Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+    
+    return redirect(request.META.get('HTTP_REFERER', '/'))

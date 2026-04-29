@@ -73,7 +73,16 @@
                 <div class="d-flex justify-content-between align-items-start mb-2"> 
                     <div>
                         <div class="mb-0"> <span class="mock-tags" style="font-weight: 500;">#{{ feedback.category|default:"отзыв" }}</span></div>
-                        <div class="mock-text-sm text-muted">{{ feedback.platform.name|default:"Неизвестный источник" }}</div>
+                        <div class="mock-text-sm text-muted">
+                            {{ feedback.platform.name|default:"Неизвестный источник" }}
+                            
+                            {% if feedback.source_url %}
+                                <a href="{{ feedback.source_url }}" target="_blank" rel="noopener noreferrer" class="ms-2 text-decoration-none text-muted" title="Перейти к оригиналу отзыва">
+                                    <i class="bi bi-box-arrow-up-right" style="font-size: 0.8rem;"></i>
+                                </a>
+                            {% endif %}
+
+                        </div>
                     </div>
                     <div class="d-flex align-items-center text-muted mock-text-sm">
                         <span class="me-2">{{ feedback.created_at|date:"d.m.y H:i" }}</span> <i class="bi bi-three-dots cursor-pointer" style="font-size: 1.1rem;"></i>
@@ -101,10 +110,11 @@
                             <button type="button" class="btn btn-sm sentiment-btn border-0" style="padding: 0px 6px; font-size: 0.9rem;" data-id="{{ feedback.id }}" data-value="0.0" data-url="{% url 'override_sentiment' feedback.id %}" title="Сделать нейтральным">😐</button>
                             <button type="button" class="btn btn-sm sentiment-btn border-0" style="padding: 0px 6px; font-size: 0.9rem;" data-id="{{ feedback.id }}" data-value="-1.0" data-url="{% url 'override_sentiment' feedback.id %}" title="Сделать негативным">👎</button>
                         </div>
-
+                        <!--
                         <button class="mock-btn mt-0 mb-0" style="padding: 2px 8px; font-size: 0.75rem;" type="button" data-bs-toggle="collapse" data-bs-target="#replyBox-{{ feedback.id }}" aria-expanded="false" aria-controls="replyBox-{{ feedback.id }}">
                             <i class="bi bi-reply"></i> Ответить
                         </button>
+                        -->
                     </div>
                 </div>
 
